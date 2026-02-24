@@ -8,6 +8,7 @@
     setWindowAlwaysOnTop,
     setWindowClickThrough
   } from '$lib/tauri/commands';
+  import { settingsStore } from '$lib/stores/settingsStore';
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
   import Slider from '$lib/components/ui/Slider.svelte';
@@ -24,12 +25,6 @@
   let isSavingApiKey = $state(false);
   let apiKeyStatusMessage = $state<string | null>(null);
   let apiKeyStatusKind = $state<'success' | 'error' | null>(null);
-  let opacity = $state(0.95);
-  let alwaysOnTop = $state(true);
-  let clickThrough = $state(false);
-  let screenCaptureProtection = $state(true);
-  let hotkeyToggle = $state('CommandOrControl+,');
-  let hotkeyRecord = $state('CommandOrControl+R');
   let hotkeyPrevious = $state('Alt+Left');
   let hotkeyNext = $state('Alt+Right');
   let hotkeySend = $state('Enter');
@@ -70,8 +65,9 @@
   async function initializeSettings() {
     try {
       apiKey = (await getApiKey()) ?? '';
+      await settingsStore.loadSettings();
     } catch (error) {
-      console.warn('Could not load API key:', error);
+      console.warn('Could not load settings:', error);
     }
   }
 
@@ -84,37 +80,41 @@
     });
   }
 
-  async function applyCaptureVisibility() {
+  async function applyCaptureVisibility(value: boolean) {
     try {
-      await setCaptureVisibility(screenCaptureProtection);
+      await setCaptureVisibility(value);
+      settingsStore.updateField('screen_capture_protection', value);
     } catch (error) {
       console.warn('Failed to set capture visibility:', error);
     }
   }
 
   async function toggleCaptureVisibility() {
-    screenCaptureProtection = !screenCaptureProtection;
-    await applyCaptureVisibility();
+    const newValue = !$settingsStore.screen_capture_protection;
+    await applyCaptureVisibility(newValue);
   }
 
-  async function applyAlwaysOnTop() {
+  async function applyAlwaysOnTop(value: boolean) {
     try {
-      await setWindowAlwaysOnTop(alwaysOnTop);
+      await setWindowAlwaysOnTop(value);
+      settingsStore.updateField('always_on_top', value);
     } catch (error) {
       console.warn('Failed to set always on top:', error);
     }
   }
 
-  async function applyClickThrough() {
+  async function applyClickThrough(value: boolean) {
     try {
-      await setWindowClickThrough(clickThrough);
+      await setWindowClickThrough(value);
+      settingsStore.updateField('click_through', value);
     } catch (error) {
       console.warn('Failed to set click-through:', error);
     }
   }
 
-  function applyUiOpacity() {
-    document.documentElement.style.setProperty('--doppler-window-alpha', opacity.toString());
+  function applyUiOpacity(value: number) {
+    document.documentElement.style.setProperty('--doppler-window-alpha', value.toString());
+    settingsStore.updateField('opacity', value, true);
   }
 
   onMount(() => {
@@ -143,9 +143,9 @@
 
     window.addEventListener('keydown', handleHotkeys, true);
     void initializeSettings();
-    applyUiOpacity();
+    applyUiOpacity($settingsStore.opacity);
     const unlistenPromise = listen<boolean>('click-through-changed', (event) => {
-      clickThrough = event.payload;
+      settingsStore.updateField('click_through', event.payload);
     });
 
     return () => {
@@ -216,22 +216,30 @@
         <!-- Opacity Slider -->
         <div class="space-y-2">
           <label for="opacity" class="block text-xs font-medium text-slate-600">
-            Opacity: {Math.round(opacity * 100)}%
+            Opacity: {Math.round($settingsStore.opacity * 100)}%
           </label>
           <Slider
             min={0.2}
             max={1}
             step={0.05}
-            bind:value={opacity}
-            oninput={applyUiOpacity}
+            bind:value={$settingsStore.opacity}
+            oninput={() => applyUiOpacity($settingsStore.opacity)}
           />
         </div>
 
         <!-- Checkboxes -->
         <div class="space-y-2">
-          <Checkbox bind:checked={alwaysOnTop} label="Always on top" onchange={applyAlwaysOnTop} />
-          <Checkbox bind:checked={clickThrough} label="Click-through" onchange={applyClickThrough} />
-          {#if clickThrough}
+          <Checkbox 
+            bind:checked={$settingsStore.always_on_top} 
+            label="Always on top" 
+            onchange={() => applyAlwaysOnTop($settingsStore.always_on_top)} 
+          />
+          <Checkbox 
+            bind:checked={$settingsStore.click_through} 
+            label="Click-through" 
+            onchange={() => applyClickThrough($settingsStore.click_through)} 
+          />
+          {#if $settingsStore.click_through}
             <p class="rounded-lg border border-amber-300/70 bg-amber-50/90 px-2.5 py-2 text-xs font-medium text-amber-900">
               Click-through is on. Turn off with <span class="font-semibold">cmd/^ + Shift + X</span>.
             </p>
@@ -252,7 +260,7 @@
             <div class="flex items-center gap-2">
               <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
                 <div class="flex gap-1 flex-wrap">
-                  {#each formatHotkey(hotkeyToggle) as key}
+                  {#each formatHotkey($settingsStore.hotkey_toggle) as key}
                     <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
                       {key}
                     </span>
@@ -272,7 +280,7 @@
             <div class="flex items-center gap-2">
               <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
                 <div class="flex gap-1 flex-wrap">
-                  {#each formatHotkey(hotkeyRecord) as key}
+                  {#each formatHotkey($settingsStore.hotkey_record) as key}
                     <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
                       {key}
                     </span>
@@ -421,16 +429,16 @@
       </button>
       <button
         type="button"
-        class="h-11 flex-1 rounded-xl border text-sm font-semibold transition {screenCaptureProtection
+        class="h-11 flex-1 rounded-xl border text-sm font-semibold transition {$settingsStore.screen_capture_protection
           ? 'border-emerald-300/80 bg-emerald-50/95 text-emerald-800 hover:bg-emerald-100/90'
           : 'border-amber-300/80 bg-amber-50/95 text-amber-800 hover:bg-amber-100/90'}"
         onclick={toggleCaptureVisibility}
-        title={screenCaptureProtection
+        title={$settingsStore.screen_capture_protection
           ? 'Window is hidden from screen recording (click to make visible)'
           : 'Window is visible to screen recording (click to hide)'}
         data-hotkey="Ctrl+Shift+H"
       >
-        {#if screenCaptureProtection}
+        {#if $settingsStore.screen_capture_protection}
           Hidden in capture
         {:else}
           Visible in capture

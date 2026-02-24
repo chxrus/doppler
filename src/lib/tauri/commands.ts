@@ -31,3 +31,22 @@ export async function setWindowAlwaysOnTop(alwaysOnTop: boolean): Promise<void> 
 export async function setWindowClickThrough(clickThrough: boolean): Promise<void> {
   await invoke('set_window_click_through', { clickThrough });
 }
+
+export interface AppSettings {
+  gemini_model: string;
+  gemini_temperature: number;
+  opacity: number;
+  always_on_top: boolean;
+  click_through: boolean;
+  screen_capture_protection: boolean;
+  hotkey_toggle: string;
+  hotkey_record: string;
+}
+
+export async function getSettings(): Promise<AppSettings> {
+  return invoke<AppSettings>('get_settings');
+}
+
+export async function updateSettings(settings: AppSettings): Promise<void> {
+  await invoke('update_settings', { settings });
+}
