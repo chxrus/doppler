@@ -465,3 +465,47 @@ fn parse_transcription_error(status: reqwest::StatusCode, raw_body: &str) -> Tra
         _ => TranscriptionError::ApiError(format!("HTTP {status}")),
     }
 }
+
+#[derive(Debug, Error)]
+pub enum TtsError {
+    #[error("Failed to initialize TTS engine: {0}")]
+    Initialization(String),
+
+    #[error("Failed to speak text: {0}")]
+    Speak(String),
+
+    #[error("Failed to stop speaking: {0}")]
+    Stop(String),
+}
+
+static TTS_INSTANCE: Mutex<Option<tts::Tts>> = Mutex::new(None);
+
+/// Speak text using the default system voice.
+pub fn speak(text: String) -> Result<(), TtsError> {
+    let mut tts_lock = TTS_INSTANCE.lock().unwrap();
+
+    // Initialize TTS if not already initialized
+    if tts_lock.is_none() {
+        let tts = tts::Tts::default().map_err(|e| TtsError::Initialization(e.to_string()))?;
+        *tts_lock = Some(tts);
+    }
+
+    let tts = tts_lock.as_mut().unwrap();
+
+    // Speak the text (non-blocking)
+    tts.speak(text, false)
+        .map_err(|e| TtsError::Speak(e.to_string()))?;
+
+    Ok(())
+}
+
+/// Stop speaking.
+pub fn stop_speaking() -> Result<(), TtsError> {
+    let mut tts_lock = TTS_INSTANCE.lock().unwrap();
+
+    if let Some(tts) = tts_lock.as_mut() {
+        tts.stop().map_err(|e| TtsError::Stop(e.to_string()))?;
+    }
+
+    Ok(())
+}
