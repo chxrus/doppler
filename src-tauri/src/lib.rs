@@ -106,7 +106,9 @@ pub fn run() {
             set_window_click_through,
             commands::save_api_key,
             commands::get_api_key,
-            commands::send_message
+            commands::send_message,
+            commands::get_settings,
+            commands::update_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

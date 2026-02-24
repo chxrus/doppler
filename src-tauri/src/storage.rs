@@ -296,7 +296,6 @@ fn set_secure_file_permissions(_path: &std::path::Path) -> std::io::Result<()> {
 }
 
 /// Get the path to the settings JSON file
-#[allow(dead_code)]
 fn get_settings_path() -> Result<PathBuf, StorageError> {
     let config_dir = dirs::config_dir().ok_or_else(|| {
         StorageError::SettingsLoadFailed("Could not resolve config directory".to_string())
@@ -307,7 +306,6 @@ fn get_settings_path() -> Result<PathBuf, StorageError> {
 }
 
 /// Load settings from JSON file, returning defaults if file doesn't exist
-#[allow(dead_code)]
 pub fn load_settings() -> Result<Settings, StorageError> {
     let settings_path = get_settings_path()?;
 
@@ -325,7 +323,6 @@ pub fn load_settings() -> Result<Settings, StorageError> {
 }
 
 /// Save settings to JSON file
-#[allow(dead_code)]
 pub fn save_settings(settings: &Settings) -> Result<(), StorageError> {
     let settings_path = get_settings_path()?;
 

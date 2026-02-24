@@ -54,3 +54,13 @@ pub async fn send_message(message: String) -> Result<String, String> {
         .await
         .map_err(|e| format!("Failed to send message: {}", e))
 }
+
+#[tauri::command]
+pub async fn get_settings() -> Result<crate::models::Settings, String> {
+    storage::load_settings().map_err(|error| format!("Failed to load settings: {}", error))
+}
+
+#[tauri::command]
+pub async fn update_settings(settings: crate::models::Settings) -> Result<(), String> {
+    storage::save_settings(&settings).map_err(|error| format!("Failed to save settings: {}", error))
+}
