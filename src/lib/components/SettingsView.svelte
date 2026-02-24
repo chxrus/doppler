@@ -337,11 +337,6 @@
               Click-through is on. Turn off with <span class="font-semibold">cmd/^ + Shift + X</span>.
             </p>
           {/if}
-          <Checkbox 
-            bind:checked={$settingsStore.screen_capture_protection} 
-            label="Screen capture protection" 
-            onchange={() => applyCaptureVisibility($settingsStore.screen_capture_protection)} 
-          />
         </div>
       </section>
 
