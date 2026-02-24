@@ -1,6 +1,8 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-mod gemini;
+pub mod gemini;
+mod settings;
 
+use settings::AppSettings;
 use std::sync::Mutex;
 use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::ShortcutState;
@@ -43,7 +45,9 @@ fn set_window_click_through(app: tauri::AppHandle, click_through: bool) -> Resul
         .get_webview_window("main")
         .ok_or_else(|| "Main window not found".to_string())?;
 
-    main_window.set_ignore_cursor_events(click_through).map_err(|error| error.to_string())?;
+    main_window
+        .set_ignore_cursor_events(click_through)
+        .map_err(|error| error.to_string())?;
     let state = app.state::<WindowInteractionState>();
     if let Ok(mut current_state) = state.click_through.lock() {
         *current_state = click_through;
@@ -51,6 +55,16 @@ fn set_window_click_through(app: tauri::AppHandle, click_through: bool) -> Resul
     let _ = app.emit("click-through-changed", click_through);
 
     Ok(())
+}
+
+#[tauri::command]
+fn load_settings(app: tauri::AppHandle) -> Result<AppSettings, String> {
+    settings::load_settings(&app)
+}
+
+#[tauri::command]
+fn save_settings(app: tauri::AppHandle, settings: AppSettings) -> Result<(), String> {
+    settings::save_settings(&app, settings)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -76,8 +90,10 @@ pub fn run() {
                                     };
 
                                 if let Some(main_window) = app.get_webview_window("main") {
-                                    let _ = main_window.set_ignore_cursor_events(next_click_through_state);
-                                    let _ = app.emit("click-through-changed", next_click_through_state);
+                                    let _ = main_window
+                                        .set_ignore_cursor_events(next_click_through_state);
+                                    let _ =
+                                        app.emit("click-through-changed", next_click_through_state);
                                 }
                             }
                         })
@@ -96,7 +112,9 @@ pub fn run() {
             greet,
             set_capture_visibility,
             set_window_always_on_top,
-            set_window_click_through
+            set_window_click_through,
+            load_settings,
+            save_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

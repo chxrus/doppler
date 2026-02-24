@@ -1,7 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
+  import {
+    loadSettings,
+    saveSettings,
+    setCaptureVisibility,
+    setWindowAlwaysOnTop,
+    setWindowClickThrough
+  } from '$lib/tauri/commands';
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
   import Slider from '$lib/components/ui/Slider.svelte';
@@ -14,8 +20,10 @@
 
   let { onClose }: Props = $props();
 
-  // Mock settings state (no backend calls)
   let apiKey = $state('');
+  let isSavingApiKey = $state(false);
+  let apiKeyStatusMessage = $state<string | null>(null);
+  let apiKeyStatusKind = $state<'success' | 'error' | null>(null);
   let opacity = $state(0.95);
   let alwaysOnTop = $state(true);
   let clickThrough = $state(false);
@@ -38,9 +46,32 @@
     { id: 'hotkeys', label: 'Hotkeys' }
   ];
 
-  function saveApiKey() {
-    // Mock save - no backend call
-    console.log('API Key saved (mock):', apiKey);
+  async function saveApiKey() {
+    isSavingApiKey = true;
+    apiKeyStatusMessage = null;
+    apiKeyStatusKind = null;
+
+    try {
+      await saveSettings({ apiKey: apiKey.trim() === '' ? null : apiKey });
+      apiKey = apiKey.trim();
+      apiKeyStatusMessage = 'API key saved';
+      apiKeyStatusKind = 'success';
+    } catch (error) {
+      console.error('Could not save API key:', error);
+      apiKeyStatusMessage = 'Could not save settings. Try again.';
+      apiKeyStatusKind = 'error';
+    } finally {
+      isSavingApiKey = false;
+    }
+  }
+
+  async function initializeSettings() {
+    try {
+      const settings = await loadSettings();
+      apiKey = settings.apiKey ?? '';
+    } catch (error) {
+      console.warn('Could not load settings:', error);
+    }
   }
 
   function formatHotkey(hotkey: string): string[] {
@@ -54,9 +85,7 @@
 
   async function applyCaptureVisibility() {
     try {
-      await invoke('set_capture_visibility', {
-        hideFromCapture: screenCaptureProtection
-      });
+      await setCaptureVisibility(screenCaptureProtection);
     } catch (error) {
       console.warn('Failed to set capture visibility:', error);
     }
@@ -69,7 +98,7 @@
 
   async function applyAlwaysOnTop() {
     try {
-      await invoke('set_window_always_on_top', { alwaysOnTop });
+      await setWindowAlwaysOnTop(alwaysOnTop);
     } catch (error) {
       console.warn('Failed to set always on top:', error);
     }
@@ -77,7 +106,7 @@
 
   async function applyClickThrough() {
     try {
-      await invoke('set_window_click_through', { clickThrough });
+      await setWindowClickThrough(clickThrough);
     } catch (error) {
       console.warn('Failed to set click-through:', error);
     }
@@ -112,6 +141,7 @@
     };
 
     window.addEventListener('keydown', handleHotkeys, true);
+    void initializeSettings();
     applyUiOpacity();
     const unlistenPromise = listen<boolean>('click-through-changed', (event) => {
       clickThrough = event.payload;
@@ -159,9 +189,21 @@
             bind:value={apiKey}
             placeholder="Enter your Gemini API key"
           />
-          <Button variant="primary" size="sm" onclick={saveApiKey}>
-            Save API Key
+          <Button
+            variant="primary"
+            size="sm"
+            onclick={() => {
+              void saveApiKey();
+            }}
+            disabled={isSavingApiKey}
+          >
+            {#if isSavingApiKey}Saving...{:else}Save API Key{/if}
           </Button>
+          {#if apiKeyStatusMessage !== null}
+            <p class="text-xs {apiKeyStatusKind === 'error' ? 'text-rose-700' : 'text-emerald-700'}">
+              {apiKeyStatusMessage}
+            </p>
+          {/if}
         </div>
       </section>
 
