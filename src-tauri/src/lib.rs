@@ -29,35 +29,6 @@ fn set_capture_visibility(app: tauri::AppHandle, hide_from_capture: bool) -> Res
         .map_err(|error| error.to_string())
 }
 
-#[tauri::command]
-fn set_window_always_on_top(app: tauri::AppHandle, always_on_top: bool) -> Result<(), String> {
-    let main_window = app
-        .get_webview_window("main")
-        .ok_or_else(|| "Main window not found".to_string())?;
-
-    main_window
-        .set_always_on_top(always_on_top)
-        .map_err(|error| error.to_string())
-}
-
-#[tauri::command]
-fn set_window_click_through(app: tauri::AppHandle, click_through: bool) -> Result<(), String> {
-    let main_window = app
-        .get_webview_window("main")
-        .ok_or_else(|| "Main window not found".to_string())?;
-
-    main_window
-        .set_ignore_cursor_events(click_through)
-        .map_err(|error| error.to_string())?;
-    let state = app.state::<WindowInteractionState>();
-    if let Ok(mut current_state) = state.click_through.lock() {
-        *current_state = click_through;
-    }
-    let _ = app.emit("click-through-changed", click_through);
-
-    Ok(())
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -102,13 +73,13 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             set_capture_visibility,
-            set_window_always_on_top,
-            set_window_click_through,
             commands::save_api_key,
             commands::get_api_key,
             commands::send_message,
             commands::get_settings,
-            commands::update_settings
+            commands::update_settings,
+            commands::set_window_always_on_top,
+            commands::set_window_click_through
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,5 +1,6 @@
 use crate::gemini;
 use crate::storage;
+use tauri::{Emitter, Manager};
 
 const API_KEY_STORAGE_KEY: &str = "gemini_api_key";
 
@@ -63,4 +64,40 @@ pub async fn get_settings() -> Result<crate::models::Settings, String> {
 #[tauri::command]
 pub async fn update_settings(settings: crate::models::Settings) -> Result<(), String> {
     storage::save_settings(&settings).map_err(|error| format!("Failed to save settings: {}", error))
+}
+
+#[tauri::command]
+pub async fn set_window_always_on_top(
+    app: tauri::AppHandle,
+    always_on_top: bool,
+) -> Result<(), String> {
+    let main_window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "Main window not found".to_string())?;
+
+    main_window
+        .set_always_on_top(always_on_top)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+pub async fn set_window_click_through(
+    app: tauri::AppHandle,
+    click_through: bool,
+) -> Result<(), String> {
+    let main_window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "Main window not found".to_string())?;
+
+    main_window
+        .set_ignore_cursor_events(click_through)
+        .map_err(|error| error.to_string())?;
+
+    let state = app.state::<crate::WindowInteractionState>();
+    if let Ok(mut current_state) = state.click_through.lock() {
+        *current_state = click_through;
+    }
+    let _ = app.emit("click-through-changed", click_through);
+
+    Ok(())
 }
