@@ -20,15 +20,15 @@
   }: Props = $props();
 
   const variantClasses = {
-    primary: 'bg-blue-500 hover:bg-blue-600 text-white',
-    secondary: 'bg-gray-500 hover:bg-gray-600 text-white',
-    danger: 'bg-red-500 hover:bg-red-600 text-white'
+    primary: 'bg-sky-500/90 text-white border-sky-400/50 hover:bg-sky-500',
+    secondary: 'bg-white/78 text-slate-700 border-white/80 hover:bg-white',
+    danger: 'bg-rose-500/88 text-white border-rose-400/55 hover:bg-rose-500'
   };
 
   const sizeClasses = {
     sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base'
+    md: 'px-3.5 py-2 text-sm',
+    lg: 'px-4.5 py-2.5 text-base'
   };
 
   const spinnerSizeClasses = {
@@ -37,7 +37,7 @@
     lg: 'w-6 h-6 border-3'
   };
 
-  const baseClasses = 'rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseClasses = 'rounded-xl border font-medium tracking-tight shadow-sm backdrop-blur transition disabled:opacity-50 disabled:cursor-not-allowed';
 
 </script>
 

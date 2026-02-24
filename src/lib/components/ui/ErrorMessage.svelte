@@ -11,7 +11,7 @@
   let { message, onDismiss, children }: Props = $props();
 </script>
 
-<div class="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm">
+<div class="flex items-start gap-2 p-3 bg-rose-50/85 border border-rose-200 rounded-xl text-sm shadow-sm">
   <div class="flex-shrink-0 mt-0.5">
     <svg
       class="w-4 h-4 text-red-500"
@@ -27,7 +27,7 @@
     </svg>
   </div>
 
-  <div class="flex-1 text-red-800">
+  <div class="flex-1 text-rose-800">
     <p>{message}</p>
     {#if children}
       {@render children()}

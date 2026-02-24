@@ -18,15 +18,15 @@
   }
 </script>
 
-<div class="border-b border-gray-200">
-  <nav class="flex -mb-px" aria-label="Tabs">
+<div class="rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
+  <nav class="grid grid-cols-4 gap-1" aria-label="Tabs">
     {#each tabs as tab}
       <button
         type="button"
         onclick={() => handleTabClick(tab.id)}
-        class="px-4 py-2 text-sm font-medium border-b-2 transition-colors {activeTab === tab.id
-          ? 'border-blue-500 text-blue-600'
-          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+        class="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition {activeTab === tab.id
+          ? 'bg-slate-100 text-slate-900 shadow-sm'
+          : 'text-slate-600 hover:bg-slate-100/85'}"
         aria-current={activeTab === tab.id ? 'page' : undefined}
       >
         {tab.label}

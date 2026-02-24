@@ -13,11 +13,11 @@
     onchange
   }: Props = $props();
 
-  const checkboxClasses = 'w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed';
-  const labelClasses = 'ml-2 text-sm text-gray-700';
+  const checkboxClasses = 'w-4 h-4 text-sky-500 border-slate-300 rounded-md focus:ring-2 focus:ring-sky-300 disabled:opacity-50 disabled:cursor-not-allowed';
+  const labelClasses = 'ml-1 text-sm text-slate-700';
 </script>
 
-<label class="flex items-center gap-2 cursor-pointer">
+<label class="flex items-center gap-2 cursor-pointer rounded-lg px-2 py-1 hover:bg-white/55">
   <input
     type="checkbox"
     bind:checked
