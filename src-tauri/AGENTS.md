@@ -212,3 +212,13 @@ Before finalizing a patch, verify:
 - [ ] `cargo clippy` passed
 - [ ] `cargo test` passed (or limitation explained)
 - [ ] Tauri permissions/capabilities are minimal (if changed)
+
+---
+
+## Git collaboration safety (must follow)
+
+- Never revert or overwrite changes you did not create for the current task.
+- Broad staging commands are allowed (`git add .`, `git commit -a`) only after verifying they contain only task-related files.
+- Always verify staged content with `git status` and `git diff --staged` before committing.
+- If unrelated staged or unstaged changes are present, leave them untouched and continue with your scoped files.
+- Never use destructive restore/reset commands (`git reset --hard`, `git checkout -- <file>`, `git restore <file>`) unless the user explicitly asks for them.
