@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import { invoke } from '@tauri-apps/api/core';
+  import { listen } from '@tauri-apps/api/event';
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
   import Slider from '$lib/components/ui/Slider.svelte';
@@ -17,8 +20,13 @@
   let alwaysOnTop = $state(true);
   let clickThrough = $state(false);
   let screenCaptureProtection = $state(true);
-  let hotkeyToggle = $state('CommandOrControl+Shift+Space');
-  let hotkeyRecord = $state('CommandOrControl+Shift+R');
+  let hotkeyToggle = $state('CommandOrControl+,');
+  let hotkeyRecord = $state('CommandOrControl+R');
+  let hotkeyPrevious = $state('Alt+Left');
+  let hotkeyNext = $state('Alt+Right');
+  let hotkeySend = $state('Enter');
+  let hotkeyClickThrough = $state('CommandOrControl+Shift+X');
+  let hotkeyCaptureVisibility = $state('CommandOrControl+Shift+H');
 
   // Tab state
   let activeTab = $state('general');
@@ -34,6 +42,86 @@
     // Mock save - no backend call
     console.log('API Key saved (mock):', apiKey);
   }
+
+  function formatHotkey(hotkey: string): string[] {
+    return hotkey.split('+').map((token) => {
+      if (token === 'CommandOrControl') return 'cmd/^';
+      if (token === 'Command') return 'cmd';
+      if (token === 'Control' || token === 'Ctrl') return '^';
+      return token;
+    });
+  }
+
+  async function applyCaptureVisibility() {
+    try {
+      await invoke('set_capture_visibility', {
+        hideFromCapture: screenCaptureProtection
+      });
+    } catch (error) {
+      console.warn('Failed to set capture visibility:', error);
+    }
+  }
+
+  async function toggleCaptureVisibility() {
+    screenCaptureProtection = !screenCaptureProtection;
+    await applyCaptureVisibility();
+  }
+
+  async function applyAlwaysOnTop() {
+    try {
+      await invoke('set_window_always_on_top', { alwaysOnTop });
+    } catch (error) {
+      console.warn('Failed to set always on top:', error);
+    }
+  }
+
+  async function applyClickThrough() {
+    try {
+      await invoke('set_window_click_through', { clickThrough });
+    } catch (error) {
+      console.warn('Failed to set click-through:', error);
+    }
+  }
+
+  function applyUiOpacity() {
+    document.documentElement.style.setProperty('--doppler-app-opacity', opacity.toString());
+  }
+
+  onMount(() => {
+    const handleHotkeys = (event: KeyboardEvent) => {
+      const isPrimaryModifier = event.metaKey || event.ctrlKey;
+
+      if (
+        ((isPrimaryModifier && !event.shiftKey && !event.altKey && event.code === 'Comma') ||
+          (!event.metaKey && !event.ctrlKey && !event.altKey && event.code === 'Escape'))
+      ) {
+        event.preventDefault();
+        onClose?.();
+        return;
+      }
+
+      if (
+        isPrimaryModifier &&
+        event.shiftKey &&
+        !event.altKey &&
+        event.code === 'KeyH'
+      ) {
+        event.preventDefault();
+        void toggleCaptureVisibility();
+      }
+    };
+
+    window.addEventListener('keydown', handleHotkeys, true);
+    applyUiOpacity();
+    const unlistenPromise = listen<boolean>('click-through-changed', (event) => {
+      clickThrough = event.payload;
+    });
+
+    return () => {
+      window.removeEventListener('keydown', handleHotkeys, true);
+      void unlistenPromise.then((unlisten) => unlisten());
+    };
+  });
 </script>
 
 <div class="h-full flex flex-col gap-3 text-slate-900 p-3 md:p-4">
@@ -92,14 +180,19 @@
             max={1}
             step={0.05}
             bind:value={opacity}
+            oninput={applyUiOpacity}
           />
         </div>
 
         <!-- Checkboxes -->
         <div class="space-y-2">
-          <Checkbox bind:checked={alwaysOnTop} label="Always on top" />
-          <Checkbox bind:checked={clickThrough} label="Click-through" />
-          <Checkbox bind:checked={screenCaptureProtection} label="Screen capture protection" />
+          <Checkbox bind:checked={alwaysOnTop} label="Always on top" onchange={applyAlwaysOnTop} />
+          <Checkbox bind:checked={clickThrough} label="Click-through" onchange={applyClickThrough} />
+          {#if clickThrough}
+            <p class="rounded-lg border border-amber-300/70 bg-amber-50/90 px-2.5 py-2 text-xs font-medium text-amber-900">
+              Click-through is on. Turn off with <span class="font-semibold">cmd/^ + Shift + X</span>.
+            </p>
+          {/if}
         </div>
       </section>
 
@@ -108,15 +201,15 @@
       <section class="space-y-3 rounded-2xl border border-white/70 bg-white/75 p-3">
         <h3 class="text-sm font-semibold text-slate-800">Hotkeys</h3>
         
-        <div class="space-y-3">
+        <div class="space-y-2.5">
           <div class="space-y-1.5">
             <div class="text-xs font-medium text-slate-600">
-              Toggle Window
+              Toggle Settings
             </div>
             <div class="flex items-center gap-2">
               <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
                 <div class="flex gap-1 flex-wrap">
-                  {#each hotkeyToggle.split('+') as key}
+                  {#each formatHotkey(hotkeyToggle) as key}
                     <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
                       {key}
                     </span>
@@ -136,7 +229,107 @@
             <div class="flex items-center gap-2">
               <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
                 <div class="flex gap-1 flex-wrap">
-                  {#each hotkeyRecord.split('+') as key}
+                  {#each formatHotkey(hotkeyRecord) as key}
+                    <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
+                      {key}
+                    </span>
+                  {/each}
+                </div>
+              </div>
+              <Button variant="secondary" size="sm">
+                Change
+              </Button>
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="text-xs font-medium text-slate-600">
+              Previous Exchange
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
+                <div class="flex gap-1 flex-wrap">
+                  {#each formatHotkey(hotkeyPrevious) as key}
+                    <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
+                      {key}
+                    </span>
+                  {/each}
+                </div>
+              </div>
+              <Button variant="secondary" size="sm">
+                Change
+              </Button>
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="text-xs font-medium text-slate-600">
+              Next Exchange
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
+                <div class="flex gap-1 flex-wrap">
+                  {#each formatHotkey(hotkeyNext) as key}
+                    <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
+                      {key}
+                    </span>
+                  {/each}
+                </div>
+              </div>
+              <Button variant="secondary" size="sm">
+                Change
+              </Button>
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="text-xs font-medium text-slate-600">
+              Send Question
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
+                <div class="flex gap-1 flex-wrap">
+                  {#each formatHotkey(hotkeySend) as key}
+                    <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
+                      {key}
+                    </span>
+                  {/each}
+                </div>
+              </div>
+              <Button variant="secondary" size="sm">
+                Change
+              </Button>
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="text-xs font-medium text-slate-600">
+              Toggle Click-through
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
+                <div class="flex gap-1 flex-wrap">
+                  {#each formatHotkey(hotkeyClickThrough) as key}
+                    <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
+                      {key}
+                    </span>
+                  {/each}
+                </div>
+              </div>
+              <Button variant="secondary" size="sm">
+                Change
+              </Button>
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="text-xs font-medium text-slate-600">
+              Toggle Capture Visibility
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
+                <div class="flex gap-1 flex-wrap">
+                  {#each formatHotkey(hotkeyCaptureVisibility) as key}
                     <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
                       {key}
                     </span>
@@ -161,6 +354,7 @@
         class="h-11 w-11 shrink-0 rounded-xl border border-white/70 bg-white/55 text-slate-500/70 cursor-not-allowed"
         aria-label="Voice input"
         title="Voice input (Ctrl+R)"
+        data-hotkey="Ctrl+R"
         disabled
       >
         <svg viewBox="0 0 24 24" class="mx-auto h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
@@ -176,12 +370,29 @@
         onclick={onClose}
         aria-label="Close settings"
         title="Toggle settings (Ctrl+,)"
+        data-hotkey="Ctrl+,"
       >
         <svg viewBox="0 0 24 24" class="mx-auto h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
         </svg>
       </button>
-      <div class="h-11 flex-1 rounded-xl border border-slate-200/70 bg-slate-100/75 opacity-70"></div>
+      <button
+        type="button"
+        class="h-11 flex-1 rounded-xl border text-sm font-semibold transition {screenCaptureProtection
+          ? 'border-emerald-300/80 bg-emerald-50/95 text-emerald-800 hover:bg-emerald-100/90'
+          : 'border-amber-300/80 bg-amber-50/95 text-amber-800 hover:bg-amber-100/90'}"
+        onclick={toggleCaptureVisibility}
+        title={screenCaptureProtection
+          ? 'Window is hidden from screen recording (click to make visible)'
+          : 'Window is visible to screen recording (click to hide)'}
+        data-hotkey="Ctrl+Shift+H"
+      >
+        {#if screenCaptureProtection}
+          Hidden in capture
+        {:else}
+          Visible in capture
+        {/if}
+      </button>
     </div>
   </div>
 </div>

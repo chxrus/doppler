@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import ErrorMessage from '$lib/components/ui/ErrorMessage.svelte';
   import Spinner from '$lib/components/ui/Spinner.svelte';
 
@@ -102,6 +103,63 @@
   function dismissError() {
     errorMessage = null;
   }
+
+  function isEditableTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) return false;
+    if (target.isContentEditable) return true;
+    const tagName = target.tagName.toLowerCase();
+    return tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+  }
+
+  onMount(() => {
+    const handleHotkeys = (event: KeyboardEvent) => {
+      const isPrimaryModifier = event.metaKey || event.ctrlKey;
+
+      if (
+        isPrimaryModifier &&
+        !event.shiftKey &&
+        !event.altKey &&
+        event.code === 'Comma'
+      ) {
+        event.preventDefault();
+        void onToggleSettings?.();
+        return;
+      }
+
+      if (
+        isPrimaryModifier &&
+        !event.shiftKey &&
+        !event.altKey &&
+        event.code === 'KeyR'
+      ) {
+        event.preventDefault();
+        toggleRecording();
+        return;
+      }
+
+      if (isEditableTarget(event.target)) {
+        return;
+      }
+
+      if (!event.metaKey && !event.ctrlKey && !event.shiftKey && event.altKey) {
+        if (event.code === 'ArrowLeft') {
+          event.preventDefault();
+          goToPreviousExchange();
+          return;
+        }
+
+        if (event.code === 'ArrowRight') {
+          event.preventDefault();
+          goToNextExchange();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleHotkeys, true);
+    return () => {
+      window.removeEventListener('keydown', handleHotkeys, true);
+    };
+  });
 </script>
 
 <section class="h-full p-3 md:p-4">
@@ -119,6 +177,8 @@
           disabled={!canGoPrevious}
           aria-label="Previous exchange"
           title="Previous exchange (Alt+Left)"
+          data-hotkey="Alt+Left"
+          data-hotkey-position="bottom"
         >
           ←
         </button>
@@ -136,6 +196,8 @@
           disabled={!canGoNext}
           aria-label="Next exchange"
           title="Next exchange (Alt+Right)"
+          data-hotkey="Alt+Right"
+          data-hotkey-position="bottom"
         >
           →
         </button>
@@ -175,6 +237,7 @@
           onclick={toggleRecording}
           aria-label={isRecording ? 'Stop recording' : 'Start recording'}
           title={isRecording ? 'Stop recording (Ctrl+R)' : 'Start recording (Ctrl+R)'}
+          data-hotkey="Ctrl+R"
         >
           <svg viewBox="0 0 24 24" class="mx-auto h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="9" y="3" width="6" height="12" rx="3" />
@@ -189,6 +252,7 @@
           onclick={() => onToggleSettings?.()}
           aria-label={isSettingsOpen ? 'Close settings' : 'Open settings'}
           title={isSettingsOpen ? 'Close settings (Esc)' : 'Open settings (Ctrl+,)'}
+          data-hotkey={isSettingsOpen ? 'Esc' : 'Ctrl+,'}
         >
           {#if isSettingsOpen}
             <svg viewBox="0 0 24 24" class="mx-auto h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
@@ -210,9 +274,10 @@
           type="text"
           bind:value={input}
           onkeypress={handleKeyPress}
-          placeholder="Ask your current question..."
+          placeholder="Ask a question..."
           class="flex-1 min-w-0 h-11 rounded-xl border border-white/75 bg-white/78 px-3.5 text-[1rem] text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-300/80"
           title="Type question and press Enter to send"
+          data-hotkey="Enter"
         />
 
         <button
@@ -221,6 +286,7 @@
           onclick={sendMessage}
           disabled={input.trim() === '' || isLoading}
           title="Send question (Enter)"
+          data-hotkey="Enter"
         >
           {#if isLoading}...{:else}Send{/if}
         </button>

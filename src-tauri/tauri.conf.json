@@ -14,7 +14,7 @@
       {
         "label": "main",
         "title": "doppler",
-        "width": 800,
+        "width": 400,
         "height": 600,
         "transparent": true,
         "decorations": true,
