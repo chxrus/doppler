@@ -1,8 +1,8 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+mod commands;
 pub mod gemini;
-mod settings;
+mod storage;
 
-use settings::AppSettings;
 use std::sync::Mutex;
 use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::ShortcutState;
@@ -57,16 +57,6 @@ fn set_window_click_through(app: tauri::AppHandle, click_through: bool) -> Resul
     Ok(())
 }
 
-#[tauri::command]
-fn load_settings(app: tauri::AppHandle) -> Result<AppSettings, String> {
-    settings::load_settings(&app)
-}
-
-#[tauri::command]
-fn save_settings(app: tauri::AppHandle, settings: AppSettings) -> Result<(), String> {
-    settings::save_settings(&app, settings)
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -113,8 +103,9 @@ pub fn run() {
             set_capture_visibility,
             set_window_always_on_top,
             set_window_click_through,
-            load_settings,
-            save_settings
+            commands::save_api_key,
+            commands::get_api_key,
+            commands::send_message
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

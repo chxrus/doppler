@@ -2,8 +2,8 @@
   import { onMount } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
   import {
-    loadSettings,
-    saveSettings,
+    getApiKey,
+    saveApiKey as persistApiKey,
     setCaptureVisibility,
     setWindowAlwaysOnTop,
     setWindowClickThrough
@@ -47,18 +47,20 @@
   ];
 
   async function saveApiKey() {
+    const trimmedApiKey = apiKey.trim();
+
     isSavingApiKey = true;
     apiKeyStatusMessage = null;
     apiKeyStatusKind = null;
 
     try {
-      await saveSettings({ apiKey: apiKey.trim() === '' ? null : apiKey });
-      apiKey = apiKey.trim();
-      apiKeyStatusMessage = 'API key saved';
+      await persistApiKey(trimmedApiKey);
+      apiKey = trimmedApiKey;
+      apiKeyStatusMessage = trimmedApiKey === '' ? 'API key removed' : 'API key saved';
       apiKeyStatusKind = 'success';
     } catch (error) {
       console.error('Could not save API key:', error);
-      apiKeyStatusMessage = 'Could not save settings. Try again.';
+      apiKeyStatusMessage = 'Could not save API key. Try again.';
       apiKeyStatusKind = 'error';
     } finally {
       isSavingApiKey = false;
@@ -67,10 +69,9 @@
 
   async function initializeSettings() {
     try {
-      const settings = await loadSettings();
-      apiKey = settings.apiKey ?? '';
+      apiKey = (await getApiKey()) ?? '';
     } catch (error) {
-      console.warn('Could not load settings:', error);
+      console.warn('Could not load API key:', error);
     }
   }
 

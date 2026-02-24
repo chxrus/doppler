@@ -1,15 +1,23 @@
 import { invoke } from '@tauri-apps/api/core';
 
-export interface AppSettings {
-  apiKey: string | null;
+export async function saveApiKey(apiKey: string): Promise<void> {
+  await invoke('save_api_key', { apiKey });
 }
 
-export async function loadSettings(): Promise<AppSettings> {
-  return invoke<AppSettings>('load_settings');
+export async function getApiKey(): Promise<string | null> {
+  try {
+    return await invoke<string>('get_api_key');
+  } catch (error) {
+    const message = String(error);
+    if (message.toLowerCase().includes('not found')) {
+      return null;
+    }
+    throw error;
+  }
 }
 
-export async function saveSettings(settings: AppSettings): Promise<void> {
-  await invoke('save_settings', { settings });
+export async function sendMessage(message: string): Promise<string> {
+  return invoke<string>('send_message', { message });
 }
 
 export async function setCaptureVisibility(hideFromCapture: boolean): Promise<void> {
