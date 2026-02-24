@@ -134,6 +134,11 @@ Do not pack them with business logic or low-level API details.
 - Do not abbreviate variable names.
 - Avoid vague names like `data`, `item`, `handler`, `utils` unless context is obvious.
 
+## 4) Imports
+- Prefer alias imports via `$lib` for shared frontend modules.
+- Do not use deep relative imports like `../../` or `../../../` when the same module can be imported from `$lib/...`.
+- Keep relative imports only for very local neighbors in the same route/component folder when it improves readability.
+
 ## 4) Top-down readability
 Inside components/modules:
 1. imports
@@ -253,6 +258,7 @@ A little duplication is acceptable if it keeps code obvious.
 - Do not create abstraction layers “for future scalability”.
 - Do not use abbreviated variable names.
 - Do not leave `any` in finished code unless unavoidable and documented.
+- Do not use deep relative imports for shared code; use `$lib/...`.
 - Do not rewrite unrelated components in the same task.
 
 ---

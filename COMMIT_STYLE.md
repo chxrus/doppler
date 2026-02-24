@@ -19,8 +19,12 @@ Before every commit:
 3) If something unrelated is staged, unstage it:
 - `git restore --staged <path>` (or `git reset <path>`)
 
-4) If a file was modified accidentally, discard it:
+4) If a file was modified accidentally by you, discard it:
 - `git restore <path>`
+
+5) If unrelated files are changed by other people/processes (parallel work), do not discard them:
+- do not run `git restore <path>` on those files
+- keep them untouched and simply exclude them from staging/commit
 
 ### What counts as “not your changes”
 Do not include these unless your task explicitly requires them:
