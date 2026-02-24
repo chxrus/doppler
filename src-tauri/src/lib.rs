@@ -88,7 +88,8 @@ pub fn run() {
             commands::get_settings,
             commands::update_settings,
             commands::set_window_always_on_top,
-            commands::set_window_click_through
+            commands::set_window_click_through,
+            commands::set_screen_capture_protection
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

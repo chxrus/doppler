@@ -40,6 +40,10 @@ export async function setCaptureVisibility(hideFromCapture: boolean): Promise<vo
   await invoke('set_capture_visibility', { hideFromCapture });
 }
 
+export async function setScreenCaptureProtection(enabled: boolean): Promise<void> {
+  await invoke('set_screen_capture_protection', { enabled });
+}
+
 export async function setWindowAlwaysOnTop(alwaysOnTop: boolean): Promise<void> {
   await invoke('set_window_always_on_top', { alwaysOnTop });
 }

@@ -6,7 +6,7 @@
     listRecordingDevices,
     type RecordingDeviceInfo,
     saveApiKey as persistApiKey,
-    setCaptureVisibility,
+    setScreenCaptureProtection,
     setWindowAlwaysOnTop,
     setWindowClickThrough
   } from '$lib/tauri/commands';
@@ -116,7 +116,7 @@
 
   async function applyCaptureVisibility(value: boolean) {
     try {
-      await setCaptureVisibility(value);
+      await setScreenCaptureProtection(value);
       settingsStore.updateField('screen_capture_protection', value);
     } catch (error) {
       console.warn('Failed to set capture visibility:', error);
@@ -337,6 +337,11 @@
               Click-through is on. Turn off with <span class="font-semibold">cmd/^ + Shift + X</span>.
             </p>
           {/if}
+          <Checkbox 
+            bind:checked={$settingsStore.screen_capture_protection} 
+            label="Screen capture protection" 
+            onchange={() => applyCaptureVisibility($settingsStore.screen_capture_protection)} 
+          />
         </div>
       </section>
 

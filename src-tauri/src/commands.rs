@@ -192,3 +192,16 @@ pub async fn list_recording_devices() -> Result<Vec<audio::AudioInputDeviceInfo>
     audio::list_input_devices()
         .map_err(|error| format!("Failed to list recording devices: {error}"))
 }
+#[tauri::command]
+pub async fn set_screen_capture_protection(
+    app: tauri::AppHandle,
+    enabled: bool,
+) -> Result<(), String> {
+    let main_window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "Main window not found".to_string())?;
+
+    main_window
+        .set_content_protected(enabled)
+        .map_err(|error| error.to_string())
+}
