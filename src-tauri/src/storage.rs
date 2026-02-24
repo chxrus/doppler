@@ -242,12 +242,16 @@ fn write_file_fallback_settings(
     if let Some(parent_directory) = settings_file_path.parent() {
         std::fs::create_dir_all(parent_directory)
             .map_err(|error| StorageError::SaveFailed(error.to_string()))?;
+        set_secure_directory_permissions(parent_directory)
+            .map_err(|error| StorageError::SaveFailed(error.to_string()))?;
     }
 
     let content = serde_json::to_string_pretty(settings).map_err(|error| {
         StorageError::SaveFailed(format!("Failed to serialize settings: {error}"))
     })?;
-    std::fs::write(settings_file_path, content)
+    std::fs::write(&settings_file_path, content)
+        .map_err(|error| StorageError::SaveFailed(error.to_string()))?;
+    set_secure_file_permissions(&settings_file_path)
         .map_err(|error| StorageError::SaveFailed(error.to_string()))
 }
 
@@ -263,6 +267,32 @@ fn file_fallback_settings_path() -> Result<std::path::PathBuf, StorageError> {
         })?;
 
     Ok(config_base.join(SERVICE_NAME).join(SETTINGS_FILE_NAME))
+}
+
+#[cfg(all(unix, not(any(target_os = "macos", target_os = "windows"))))]
+fn set_secure_directory_permissions(path: &std::path::Path) -> std::io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let permissions = std::fs::Permissions::from_mode(0o700);
+    std::fs::set_permissions(path, permissions)
+}
+
+#[cfg(all(unix, not(any(target_os = "macos", target_os = "windows"))))]
+fn set_secure_file_permissions(path: &std::path::Path) -> std::io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let permissions = std::fs::Permissions::from_mode(0o600);
+    std::fs::set_permissions(path, permissions)
+}
+
+#[cfg(all(not(unix), not(any(target_os = "macos", target_os = "windows"))))]
+fn set_secure_directory_permissions(_path: &std::path::Path) -> std::io::Result<()> {
+    Ok(())
+}
+
+#[cfg(all(not(unix), not(any(target_os = "macos", target_os = "windows"))))]
+fn set_secure_file_permissions(_path: &std::path::Path) -> std::io::Result<()> {
+    Ok(())
 }
 
 /// Get the path to the settings JSON file

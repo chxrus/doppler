@@ -9,13 +9,29 @@ function escapeHtml(value: string): string {
 
 function safeHref(url: string): string {
   const trimmedUrl = url.trim();
+  if (trimmedUrl === '') return '#';
+
+  const normalizedForSchemeCheck = trimmedUrl
+    .replaceAll(/[\u0000-\u001f\u007f\s]+/g, '')
+    .toLowerCase();
+
   if (
-    trimmedUrl.startsWith('http://') ||
-    trimmedUrl.startsWith('https://') ||
-    trimmedUrl.startsWith('mailto:')
+    normalizedForSchemeCheck.startsWith('javascript:') ||
+    normalizedForSchemeCheck.startsWith('vbscript:') ||
+    normalizedForSchemeCheck.startsWith('data:') ||
+    normalizedForSchemeCheck.startsWith('file:')
+  ) {
+    return '#';
+  }
+
+  if (
+    normalizedForSchemeCheck.startsWith('http://') ||
+    normalizedForSchemeCheck.startsWith('https://') ||
+    normalizedForSchemeCheck.startsWith('mailto:')
   ) {
     return trimmedUrl;
   }
+
   return '#';
 }
 
