@@ -23,8 +23,8 @@
 </script>
 
 <div
-  class="min-h-screen p-3 bg-[radial-gradient(circle_at_top_left,_#eef4ff_0%,_#dfe8f6_45%,_#d5dfef_100%)]"
-  style="opacity: var(--doppler-app-opacity, 1);"
+  class="min-h-screen p-3"
+  style="background: radial-gradient(circle at top left, rgba(238, 244, 255, var(--doppler-window-alpha, 0.95)) 0%, rgba(223, 232, 246, var(--doppler-window-alpha, 0.95)) 45%, rgba(213, 223, 239, var(--doppler-window-alpha, 0.95)) 100%);"
 >
   <div class="h-[calc(100vh-1.5rem)] overflow-hidden flex flex-col">
     <main class="relative flex-1 overflow-hidden">

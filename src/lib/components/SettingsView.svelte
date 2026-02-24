@@ -84,7 +84,7 @@
   }
 
   function applyUiOpacity() {
-    document.documentElement.style.setProperty('--doppler-app-opacity', opacity.toString());
+    document.documentElement.style.setProperty('--doppler-window-alpha', opacity.toString());
   }
 
   onMount(() => {
