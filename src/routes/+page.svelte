@@ -1,38 +1,26 @@
 <script lang="ts">
   import ChatView from '$lib/components/ChatView.svelte';
   import SettingsView from '$lib/components/SettingsView.svelte';
+  import Button from '$lib/components/ui/Button.svelte';
 
   let currentView = $state<'chat' | 'settings'>('chat');
 
-  function showChat() {
-    currentView = 'chat';
-  }
-
-  function showSettings() {
-    currentView = 'settings';
+  function toggleView() {
+    currentView = currentView === 'chat' ? 'settings' : 'chat';
   }
 </script>
 
-<div class="flex flex-col h-screen">
+<div class="flex flex-col h-screen bg-gray-50">
   <!-- Top Bar -->
-  <div class="flex items-center justify-between px-3 py-2 bg-white border-b border-gray-200">
-    <h1 class="text-sm font-semibold text-gray-900">Doppler</h1>
-    <div class="flex gap-1">
-      <button
-        type="button"
-        onclick={showChat}
-        class="px-2.5 py-1 rounded-md text-xs font-medium {currentView === 'chat' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'} transition-colors"
-      >
-        Chat
-      </button>
-      <button
-        type="button"
-        onclick={showSettings}
-        class="px-2.5 py-1 rounded-md text-xs font-medium {currentView === 'settings' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'} transition-colors"
-      >
-        Settings
-      </button>
-    </div>
+  <div class="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shadow-sm">
+    <h1 class="text-lg font-semibold text-gray-900">Doppler</h1>
+    <Button
+      variant={currentView === 'settings' ? 'primary' : 'secondary'}
+      size="sm"
+      onclick={toggleView}
+    >
+      {currentView === 'settings' ? '← Back to Chat' : 'Settings'}
+    </Button>
   </div>
 
   <!-- Content Area -->
@@ -42,5 +30,11 @@
     {:else}
       <SettingsView />
     {/if}
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="flex items-center justify-between px-4 py-2 bg-white border-t border-gray-200 text-xs text-gray-500">
+    <span>v0.1.0</span>
+    <span>MVP Overlay Chat</span>
   </div>
 </div>
