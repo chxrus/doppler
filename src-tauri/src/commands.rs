@@ -129,3 +129,18 @@ pub async fn set_window_click_through(
 
     Ok(())
 }
+
+#[tauri::command]
+pub async fn stop_recording() -> Result<String, String> {
+    stop_recording_and_transcribe().await
+}
+
+#[tauri::command]
+pub async fn speak_text(text: String) -> Result<(), String> {
+    audio::speak(text).map_err(|error| format!("Failed to speak text: {error}"))
+}
+
+#[tauri::command]
+pub async fn stop_speaking() -> Result<(), String> {
+    audio::stop_speaking().map_err(|error| format!("Failed to stop speaking: {error}"))
+}
