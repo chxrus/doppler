@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import ErrorMessage from '$lib/components/ui/ErrorMessage.svelte';
   import Spinner from '$lib/components/ui/Spinner.svelte';
+  import { chatStore } from '$lib/stores/chatStore';
+  import { renderMarkdown } from '$lib/utils/markdown';
 
   interface Props {
     onToggleSettings?: () => void | Promise<void>;
@@ -10,29 +12,26 @@
 
   let { onToggleSettings, isSettingsOpen = false }: Props = $props();
 
-  interface Exchange {
-    question: string;
-    answer: string;
-    isPending?: boolean;
-  }
-
-  let exchanges = $state<Exchange[]>([
-    {
-      question: 'How does this overlay workflow help in daily tasks?',
-      answer: 'It keeps a compact ask/answer loop on top of your work without forcing a full chat thread view.'
-    },
-    {
-      question: 'Can I navigate previous answers quickly?',
-      answer: 'Yes. Use the left and right arrows to move between recent exchanges while keeping focus on one item at a time.'
-    }
-  ]);
-
   let currentExchangeIndex = $state(0);
   let isExchangeIndexInitialized = $state(false);
   let input = $state('');
   let isRecording = $state(false);
+
+  let exchanges = $state<any[]>([]);
   let isLoading = $state(false);
   let errorMessage = $state<string | null>(null);
+
+  $effect(() => {
+    const unsubExchanges = chatStore.exchanges.subscribe(value => exchanges = value);
+    const unsubLoading = chatStore.isLoading.subscribe(value => isLoading = value);
+    const unsubError = chatStore.error.subscribe(value => errorMessage = value);
+    
+    return () => {
+      unsubExchanges();
+      unsubLoading();
+      unsubError();
+    };
+  });
 
   const hasExchanges = $derived(exchanges.length > 0);
   const currentExchange = $derived(hasExchanges ? exchanges[currentExchangeIndex] : null);
@@ -43,6 +42,18 @@
     if (!isExchangeIndexInitialized && exchanges.length > 0) {
       currentExchangeIndex = exchanges.length - 1;
       isExchangeIndexInitialized = true;
+    }
+  });
+
+  $effect(() => {
+    if (exchanges.length === 0) {
+      currentExchangeIndex = 0;
+      return;
+    }
+
+    const maxIndex = exchanges.length - 1;
+    if (currentExchangeIndex > maxIndex) {
+      currentExchangeIndex = maxIndex;
     }
   });
 
@@ -60,33 +71,12 @@
     const trimmedInput = input.trim();
     if (trimmedInput === '') return;
 
-    const exchangeToAdd: Exchange = {
-      question: trimmedInput,
-      answer: '',
-      isPending: true
-    };
-
-    exchanges = [...exchanges, exchangeToAdd];
-    currentExchangeIndex = exchanges.length - 1;
+    const messageToSend = trimmedInput;
+    const nextExchangeIndex = exchanges.length;
     input = '';
-    isLoading = true;
-    errorMessage = null;
 
-    const pendingExchangeIndex = currentExchangeIndex;
-    const prompt = exchangeToAdd.question;
-
-    setTimeout(() => {
-      exchanges = exchanges.map((exchange, index) =>
-        index === pendingExchangeIndex
-          ? {
-              ...exchange,
-              isPending: false,
-              answer: `You asked: "${prompt}". This is a mock answer in focused Q/A mode.`
-            }
-          : exchange
-      );
-      isLoading = false;
-    }, 1200);
+    void chatStore.sendMessage(messageToSend);
+    currentExchangeIndex = nextExchangeIndex;
   }
 
   function handleKeyPress(event: KeyboardEvent) {
@@ -101,7 +91,7 @@
   }
 
   function dismissError() {
-    errorMessage = null;
+    chatStore.clearError();
   }
 
   function isEditableTarget(target: EventTarget | null): boolean {
@@ -218,7 +208,11 @@
                 <span class="text-sm">Generating response...</span>
               </div>
             {:else}
-              <p class="text-[1.02rem] leading-relaxed text-slate-900 break-words">{currentExchange.answer}</p>
+              <div
+                class="markdown-content text-[1.02rem] leading-relaxed text-slate-900 break-words"
+              >
+                {@html renderMarkdown(currentExchange.answer)}
+              </div>
             {/if}
           </div>
         {:else}
@@ -294,3 +288,70 @@
     </div>
   </div>
 </section>
+
+<style>
+  .markdown-content :global(h1),
+  .markdown-content :global(h2),
+  .markdown-content :global(h3),
+  .markdown-content :global(h4),
+  .markdown-content :global(h5),
+  .markdown-content :global(h6) {
+    margin: 0.5rem 0;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .markdown-content :global(p) {
+    margin: 0.5rem 0;
+  }
+
+  .markdown-content :global(ul),
+  .markdown-content :global(ol) {
+    margin: 0.5rem 0;
+    padding-left: 1.2rem;
+  }
+
+  .markdown-content :global(li) {
+    margin: 0.2rem 0;
+  }
+
+  .markdown-content :global(blockquote) {
+    margin: 0.5rem 0;
+    padding: 0.4rem 0.7rem;
+    border-left: 3px solid rgba(148, 163, 184, 0.8);
+    background: rgba(241, 245, 249, 0.65);
+    border-radius: 0.5rem;
+  }
+
+  .markdown-content :global(pre) {
+    margin: 0.6rem 0;
+    padding: 0.7rem;
+    overflow-x: auto;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    border-radius: 0.6rem;
+    background: rgba(15, 23, 42, 0.95);
+    color: #f8fafc;
+    font-size: 0.92rem;
+  }
+
+  .markdown-content :global(code) {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+      'Courier New', monospace;
+    background: rgba(148, 163, 184, 0.18);
+    padding: 0.12rem 0.3rem;
+    border-radius: 0.3rem;
+    font-size: 0.9em;
+  }
+
+  .markdown-content :global(pre code) {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  .markdown-content :global(a) {
+    color: #0c4a6e;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+</style>
