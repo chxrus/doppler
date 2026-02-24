@@ -174,7 +174,10 @@ pub async fn set_window_click_through(
 
 #[tauri::command]
 pub async fn speak_text(text: String) -> Result<(), String> {
-    audio::speak(text).map_err(|error| format!("Failed to speak text: {error}"))
+    let settings =
+        storage::load_settings().map_err(|error| format!("Failed to load settings: {error}"))?;
+    audio::speak(text, Some(settings.tts_rate))
+        .map_err(|error| format!("Failed to speak text: {error}"))
 }
 
 #[tauri::command]

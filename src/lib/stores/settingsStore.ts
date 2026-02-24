@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 export interface AppSettings {
   gemini_model: string;
   gemini_temperature: number;
+  tts_rate: number;
   recording_source: string;
   recording_input_device: string;
   opacity: number;
@@ -17,6 +18,7 @@ export interface AppSettings {
 const defaultSettings: AppSettings = {
   gemini_model: 'gemini-2.5-flash',
   gemini_temperature: 0.7,
+  tts_rate: 1.0,
   recording_source: 'microphone',
   recording_input_device: 'Default input',
   opacity: 0.95,

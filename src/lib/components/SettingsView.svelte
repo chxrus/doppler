@@ -147,7 +147,14 @@
   }
 
   function applyUiOpacity(value: number) {
-    document.documentElement.style.setProperty('--doppler-window-alpha', value.toString());
+    const clamped = Math.max(0.1, Math.min(1, value));
+    const surface = Math.max(0.04, Math.min(0.62, clamped * 0.58));
+    const surfaceStrong = Math.max(0.05, Math.min(0.8, clamped * 0.72));
+    const border = Math.max(0.12, Math.min(0.75, clamped * 0.78));
+    document.documentElement.style.setProperty('--doppler-window-alpha', clamped.toString());
+    document.documentElement.style.setProperty('--doppler-surface-alpha', surface.toString());
+    document.documentElement.style.setProperty('--doppler-surface-strong-alpha', surfaceStrong.toString());
+    document.documentElement.style.setProperty('--doppler-border-alpha', border.toString());
     settingsStore.updateField('opacity', value, true);
   }
 
@@ -190,7 +197,8 @@
 </script>
 
 <div class="h-full flex flex-col gap-3 text-slate-900 p-3 md:p-4">
-  <div class="flex-1 min-h-0 rounded-2xl border border-white/70 bg-white/50 backdrop-blur-xl p-3 md:p-4 flex flex-col gap-3">
+  <div class="flex-1 min-h-0 rounded-2xl backdrop-blur-xl p-3 md:p-4 flex flex-col gap-3"
+    style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-alpha, 0.5));">
     <!-- Tabs Navigation -->
     <div class="pb-1">
     <div>
@@ -204,7 +212,8 @@
     <div class="flex-1 overflow-y-auto space-y-3">
     {#if activeTab === 'general'}
       <!-- General Tab (Placeholder) -->
-      <section class="space-y-3 rounded-2xl border border-white/70 bg-white/75 p-3">
+      <section class="space-y-3 rounded-2xl border p-3"
+        style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.75));">
         <h3 class="text-sm font-semibold text-slate-800">General Settings</h3>
         <div class="space-y-2">
           <label class="block text-xs font-medium text-slate-600" for="recording-source">
@@ -241,11 +250,25 @@
             <p class="text-xs text-slate-500">No input devices detected.</p>
           {/if}
         </div>
+
+        <div class="space-y-2">
+          <label class="block text-xs font-medium text-slate-600" for="tts-rate">
+            Speech Speed: {$settingsStore.tts_rate.toFixed(2)}x
+          </label>
+          <Slider
+            min={0.7}
+            max={1.8}
+            step={0.05}
+            bind:value={$settingsStore.tts_rate}
+            oninput={() => settingsStore.updateField('tts_rate', $settingsStore.tts_rate, true)}
+          />
+        </div>
       </section>
 
     {:else if activeTab === 'gemini'}
       <!-- Gemini Tab -->
-      <section class="space-y-3 rounded-2xl border border-white/70 bg-white/75 p-3">
+      <section class="space-y-3 rounded-2xl border p-3"
+        style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.75));">
         <h3 class="text-sm font-semibold text-slate-800">Gemini API</h3>
         <div class="space-y-2">
           <label for="api-key" class="block text-xs font-medium text-slate-600">
@@ -303,7 +326,8 @@
 
     {:else if activeTab === 'overlay'}
       <!-- Overlay Tab -->
-      <section class="space-y-3 rounded-2xl border border-white/70 bg-white/75 p-3">
+      <section class="space-y-3 rounded-2xl border p-3"
+        style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.75));">
         <h3 class="text-sm font-semibold text-slate-800">Overlay Settings</h3>
         
         <!-- Opacity Slider -->
@@ -312,7 +336,7 @@
             Opacity: {Math.round($settingsStore.opacity * 100)}%
           </label>
           <Slider
-            min={0.2}
+            min={0.1}
             max={1}
             step={0.05}
             bind:value={$settingsStore.opacity}
@@ -342,7 +366,8 @@
 
     {:else if activeTab === 'hotkeys'}
       <!-- Hotkeys Tab -->
-      <section class="space-y-3 rounded-2xl border border-white/70 bg-white/75 p-3">
+      <section class="space-y-3 rounded-2xl border p-3"
+        style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.75));">
         <h3 class="text-sm font-semibold text-slate-800">Hotkeys</h3>
         
         <div class="space-y-2.5">
@@ -491,7 +516,8 @@
     </div>
   </div>
 
-  <div class="rounded-2xl border border-white/70 bg-white/70 backdrop-blur-xl p-2.5 md:p-3">
+  <div class="rounded-2xl border backdrop-blur-xl p-2.5 md:p-3"
+    style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.7));">
     <div class="flex items-center gap-2">
       <button
         type="button"

@@ -11,6 +11,7 @@ pub struct Message {
 pub struct Settings {
     pub gemini_model: String,
     pub gemini_temperature: f32,
+    pub tts_rate: f32,
     pub recording_source: String,
     pub recording_input_device: String,
     pub opacity: f64,
@@ -26,6 +27,7 @@ impl Default for Settings {
         Self {
             gemini_model: "gemini-2.5-flash".to_string(),
             gemini_temperature: 0.7,
+            tts_rate: 1.0,
             recording_source: "microphone".to_string(),
             recording_input_device: "Default input".to_string(),
             opacity: 0.95,

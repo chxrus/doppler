@@ -13,12 +13,22 @@
     isSettingsOpen = !isSettingsOpen;
   }
 
+  function applyOpacityVariables(opacity: number) {
+    const clamped = Math.max(0.1, Math.min(1, opacity));
+    const surface = Math.max(0.04, Math.min(0.62, clamped * 0.58));
+    const surfaceStrong = Math.max(0.05, Math.min(0.8, clamped * 0.72));
+    const border = Math.max(0.12, Math.min(0.75, clamped * 0.78));
+    document.documentElement.style.setProperty('--doppler-window-alpha', clamped.toString());
+    document.documentElement.style.setProperty('--doppler-surface-alpha', surface.toString());
+    document.documentElement.style.setProperty('--doppler-surface-strong-alpha', surfaceStrong.toString());
+    document.documentElement.style.setProperty('--doppler-border-alpha', border.toString());
+  }
+
   async function restoreOverlaySettings() {
     await settingsStore.loadSettings();
     const settings = $settingsStore;
 
-    // Apply opacity via CSS variable
-    document.documentElement.style.setProperty('--doppler-window-alpha', settings.opacity.toString());
+    applyOpacityVariables(settings.opacity);
 
     // Apply always-on-top
     try {

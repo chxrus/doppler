@@ -12,6 +12,7 @@ function createChatStore() {
   const exchanges = writable<Exchange[]>([]);
   const isLoading = writable(false);
   const error = writable<string | null>(null);
+  const inputDraft = writable('');
   let nextExchangeId = 1;
   let pendingRequestCount = 0;
 
@@ -19,6 +20,7 @@ function createChatStore() {
     exchanges,
     isLoading,
     error,
+    inputDraft,
 
     async sendMessage(message: string): Promise<void> {
       const trimmedMessage = message.trim();
@@ -79,6 +81,18 @@ function createChatStore() {
 
     clearExchanges(): void {
       exchanges.set([]);
+    },
+
+    setInputDraft(value: string): void {
+      inputDraft.set(value);
+    },
+
+    clearSession(): void {
+      pendingRequestCount = 0;
+      exchanges.set([]);
+      inputDraft.set('');
+      error.set(null);
+      isLoading.set(false);
     }
   };
 }

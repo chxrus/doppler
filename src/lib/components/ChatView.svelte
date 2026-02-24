@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { listen } from '@tauri-apps/api/event';
   import ErrorMessage from '$lib/components/ui/ErrorMessage.svelte';
   import Spinner from '$lib/components/ui/Spinner.svelte';
   import { chatStore } from '$lib/stores/chatStore';
@@ -34,16 +35,19 @@
   let isTranscribingRecording = $state(false);
   let speakingExchangeIndex = $state<number | null>(null);
   let ttsErrorMessage = $state<string | null>(null);
+  let isClearingSession = $state(false);
 
   $effect(() => {
     const unsubExchanges = chatStore.exchanges.subscribe(value => exchanges = value);
     const unsubLoading = chatStore.isLoading.subscribe(value => isLoading = value);
     const unsubError = chatStore.error.subscribe(value => errorMessage = value);
+    const unsubInputDraft = chatStore.inputDraft.subscribe(value => input = value);
     
     return () => {
       unsubExchanges();
       unsubLoading();
       unsubError();
+      unsubInputDraft();
     };
   });
 
@@ -88,9 +92,14 @@
     const messageToSend = trimmedInput;
     const nextExchangeIndex = exchanges.length;
     input = '';
+    chatStore.setInputDraft('');
 
     void chatStore.sendMessage(messageToSend);
     currentExchangeIndex = nextExchangeIndex;
+  }
+
+  function handleInput() {
+    chatStore.setInputDraft(input);
   }
 
   function handleKeyPress(event: KeyboardEvent) {
@@ -121,6 +130,7 @@
           const trimmedTranscription = transcription.trim();
           if (trimmedTranscription !== '') {
             input = input.trim() === '' ? trimmedTranscription : `${input.trim()} ${trimmedTranscription}`;
+            chatStore.setInputDraft(input);
           }
         })
         .catch((error) => {
@@ -167,6 +177,27 @@
     chatStore.clearError();
     recordingErrorMessage = null;
     ttsErrorMessage = null;
+  }
+
+  async function clearSession() {
+    if (isClearingSession) return;
+    isClearingSession = true;
+    try {
+      if (speakingExchangeIndex != null) {
+        await stopSpeaking();
+      }
+    } catch {
+      // Ignore stop-speaking failures while clearing session state.
+    } finally {
+      chatStore.clearSession();
+      input = '';
+      currentExchangeIndex = 0;
+      isExchangeIndexInitialized = false;
+      speakingExchangeIndex = null;
+      recordingErrorMessage = null;
+      ttsErrorMessage = null;
+      isClearingSession = false;
+    }
   }
 
   function isEditableTarget(target: EventTarget | null): boolean {
@@ -235,9 +266,16 @@
 
     const speakingPollInterval = window.setInterval(pollSpeakingState, 400);
     window.addEventListener('keydown', handleHotkeys, true);
+
+    // Listen for global hotkey events from backend
+    const unlistenRecordingPromise = listen('hotkey-toggle-recording', () => {
+      void toggleRecording();
+    });
+
     return () => {
       window.clearInterval(speakingPollInterval);
       window.removeEventListener('keydown', handleHotkeys, true);
+      void unlistenRecordingPromise.then((unlisten) => unlisten());
     };
   });
 </script>
@@ -254,8 +292,20 @@
       <ErrorMessage message={ttsErrorMessage} onDismiss={dismissError} />
     {/if}
 
-    <div class="flex-1 min-h-0 rounded-2xl border border-white/70 bg-white/50 backdrop-blur-xl p-3 md:p-4 flex flex-col gap-3">
+    <div class="flex-1 min-h-0 rounded-2xl border backdrop-blur-xl p-3 md:p-4 flex flex-col gap-3"
+      style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-alpha, 0.5));">
       <div class="flex items-center justify-end gap-1.5">
+        <button
+          type="button"
+          class="h-9 px-2 rounded-lg border border-white/70 bg-white/65 text-xs font-semibold text-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/95"
+          onclick={() => {
+            void clearSession();
+          }}
+          disabled={isClearingSession || (exchanges.length === 0 && input.trim() === '')}
+          title="Clear session"
+        >
+          Clear
+        </button>
         <button
           type="button"
           class="h-9 w-9 rounded-lg border border-white/70 bg-white/65 text-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/95"
@@ -291,12 +341,14 @@
 
       <div class="flex-1 min-h-0 overflow-auto space-y-3">
         {#if currentExchange != null}
-          <div class="rounded-2xl border border-sky-200 bg-sky-50/85 p-3 md:p-4 space-y-2">
+          <div class="rounded-2xl border p-3 md:p-4 space-y-2"
+            style="border-color: rgba(186, 230, 253, var(--doppler-border-alpha, 0.7)); background: rgba(224, 242, 254, calc(var(--doppler-surface-strong-alpha, 0.75) + 0.05));">
             <div class="text-[11px] uppercase tracking-wide font-semibold text-slate-500">Question</div>
             <p class="text-[1.02rem] leading-relaxed text-slate-900 break-words">{currentExchange.question}</p>
           </div>
 
-          <div class="rounded-2xl border border-slate-200 bg-white p-3 md:p-4 space-y-2">
+          <div class="rounded-2xl border p-3 md:p-4 space-y-2"
+            style="border-color: rgba(203, 213, 225, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.78));">
             <div class="flex items-center justify-between">
               <div class="text-[11px] uppercase tracking-wide font-semibold text-slate-500">Answer</div>
               {#if !currentExchange.isPending}
@@ -327,7 +379,8 @@
       </div>
     </div>
 
-    <div class="rounded-2xl border border-white/70 bg-white/70 backdrop-blur-xl p-2.5 md:p-3">
+    <div class="rounded-2xl border backdrop-blur-xl p-2.5 md:p-3"
+      style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.7));">
       <div class="flex items-center gap-2">
         <button
           type="button"
@@ -376,9 +429,11 @@
         <input
           type="text"
           bind:value={input}
+          oninput={handleInput}
           onkeypress={handleKeyPress}
           placeholder="Ask a question..."
-          class="flex-1 min-w-0 h-11 rounded-xl border border-white/75 bg-white/78 px-3.5 text-[1rem] text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-300/80"
+          class="flex-1 min-w-0 h-11 rounded-xl border px-3.5 text-[1rem] text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-300/80"
+          style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.75)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.78));"
           title="Type question and press Enter to send"
           data-hotkey="Enter"
         />

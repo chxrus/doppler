@@ -1,6 +1,4 @@
 <script lang="ts">
-  import Button from './ui/Button.svelte';
-
   interface Props {
     speaking?: boolean;
     onclick?: () => void;
@@ -9,9 +7,12 @@
   let { speaking = false, onclick }: Props = $props();
 </script>
 
-<Button
-  variant={speaking ? 'danger' : 'secondary'}
-  size="sm"
+<button
+  type="button"
+  class="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm font-medium tracking-tight shadow-sm backdrop-blur transition disabled:opacity-50 disabled:cursor-not-allowed
+    {speaking
+      ? 'border-rose-400/80 bg-rose-200/85 text-rose-900 hover:bg-rose-200'
+      : 'border-white/80 bg-white/78 text-slate-700 hover:bg-white'}"
   {onclick}
 >
   {#if speaking}
@@ -25,7 +26,7 @@
       <span>Speak</span>
     </span>
   {/if}
-</Button>
+</button>
 
 <style>
   @keyframes pulse {

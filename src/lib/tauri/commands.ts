@@ -77,6 +77,7 @@ export async function listRecordingDevices(): Promise<RecordingDeviceInfo[]> {
 export interface AppSettings {
   gemini_model: string;
   gemini_temperature: number;
+  tts_rate: number;
   recording_source: string;
   recording_input_device: string;
   opacity: number;

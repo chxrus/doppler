@@ -661,7 +661,7 @@ pub enum TtsError {
 static TTS_INSTANCE: Mutex<Option<tts::Tts>> = Mutex::new(None);
 
 /// Speak text using the default system voice.
-pub fn speak(text: String) -> Result<(), TtsError> {
+pub fn speak(text: String, preferred_rate: Option<f32>) -> Result<(), TtsError> {
     let mut tts_lock = TTS_INSTANCE.lock().unwrap();
 
     // Initialize TTS if not already initialized
@@ -671,6 +671,22 @@ pub fn speak(text: String) -> Result<(), TtsError> {
     }
 
     let tts = tts_lock.as_mut().unwrap();
+
+    if let Some(rate_multiplier) = preferred_rate {
+        let features = tts.supported_features();
+        if features.rate {
+            let multiplier = rate_multiplier.clamp(0.5, 3.0);
+            let min_rate = tts.min_rate();
+            let max_rate = tts.max_rate();
+            let normal_rate = tts.normal_rate();
+            let target_rate = (normal_rate * multiplier).clamp(min_rate, max_rate);
+
+            // Don't fail speech if backend rejects rate changes; continue with default rate.
+            if let Err(error) = tts.set_rate(target_rate) {
+                eprintln!("Failed to set TTS rate: {error}");
+            }
+        }
+    }
 
     // Speak the text (non-blocking)
     tts.speak(text, false)
