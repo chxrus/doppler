@@ -4,6 +4,8 @@ import { invoke } from '@tauri-apps/api/core';
 export interface AppSettings {
   gemini_model: string;
   gemini_temperature: number;
+  recording_source: string;
+  recording_input_device: string;
   opacity: number;
   always_on_top: boolean;
   click_through: boolean;
@@ -13,8 +15,10 @@ export interface AppSettings {
 }
 
 const defaultSettings: AppSettings = {
-  gemini_model: 'gemini-pro',
+  gemini_model: 'gemini-2.5-flash',
   gemini_temperature: 0.7,
+  recording_source: 'microphone',
+  recording_input_device: 'Default input',
   opacity: 0.95,
   always_on_top: true,
   click_through: false,

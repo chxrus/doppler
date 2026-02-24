@@ -7,9 +7,12 @@ pub struct Message {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Settings {
     pub gemini_model: String,
     pub gemini_temperature: f32,
+    pub recording_source: String,
+    pub recording_input_device: String,
     pub opacity: f64,
     pub always_on_top: bool,
     pub click_through: bool,
@@ -21,8 +24,10 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            gemini_model: "gemini-pro".to_string(),
+            gemini_model: "gemini-2.5-flash".to_string(),
             gemini_temperature: 0.7,
+            recording_source: "microphone".to_string(),
+            recording_input_device: "Default input".to_string(),
             opacity: 0.95,
             always_on_top: true,
             click_through: false,

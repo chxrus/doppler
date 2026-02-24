@@ -24,8 +24,16 @@ export async function startRecording(): Promise<void> {
   await invoke('start_recording');
 }
 
+export async function stopRecording(): Promise<void> {
+  await invoke('stop_recording');
+}
+
 export async function stopRecordingAndTranscribe(): Promise<string> {
   return invoke<string>('stop_recording_and_transcribe');
+}
+
+export async function transcribeLastRecording(): Promise<string> {
+  return invoke<string>('transcribe_last_recording');
 }
 
 export async function setCaptureVisibility(hideFromCapture: boolean): Promise<void> {
@@ -40,9 +48,33 @@ export async function setWindowClickThrough(clickThrough: boolean): Promise<void
   await invoke('set_window_click_through', { clickThrough });
 }
 
+export async function speakText(text: string): Promise<void> {
+  await invoke('speak_text', { text });
+}
+
+export async function stopSpeaking(): Promise<void> {
+  await invoke('stop_speaking');
+}
+
+export async function isSpeaking(): Promise<boolean> {
+  return invoke<boolean>('is_speaking');
+}
+
+export interface RecordingDeviceInfo {
+  name: string;
+  is_default: boolean;
+  likely_system_audio: boolean;
+}
+
+export async function listRecordingDevices(): Promise<RecordingDeviceInfo[]> {
+  return invoke<RecordingDeviceInfo[]>('list_recording_devices');
+}
+
 export interface AppSettings {
   gemini_model: string;
   gemini_temperature: number;
+  recording_source: string;
+  recording_input_device: string;
   opacity: number;
   always_on_top: boolean;
   click_through: boolean;

@@ -3,6 +3,7 @@
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use once_cell::sync::OnceCell;
+use serde::Serialize;
 use std::sync::{mpsc, Mutex};
 use thiserror::Error;
 
@@ -43,7 +44,10 @@ struct AudioState {
 }
 
 enum AudioCommand {
-    Start(mpsc::Sender<Result<(u32, u16), AudioError>>),
+    Start(
+        RecordingOptions,
+        mpsc::Sender<Result<(u32, u16), AudioError>>,
+    ),
     Stop(mpsc::Sender<Result<(), AudioError>>),
 }
 
@@ -62,8 +66,27 @@ static AUDIO_STATE: Mutex<AudioState> = Mutex::new(AudioState {
 
 static AUDIO_WORKER: OnceCell<AudioWorker> = OnceCell::new();
 
+#[derive(Debug, Clone)]
+pub enum RecordingSource {
+    Microphone,
+    SystemAudio,
+}
+
+#[derive(Debug, Clone)]
+pub struct RecordingOptions {
+    pub source: RecordingSource,
+    pub preferred_device_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AudioInputDeviceInfo {
+    pub name: String,
+    pub is_default: bool,
+    pub likely_system_audio: bool,
+}
+
 /// Start microphone recording.
-pub fn start_microphone() -> Result<(), AudioError> {
+pub fn start_microphone(options: RecordingOptions) -> Result<(), AudioError> {
     {
         let mut state = AUDIO_STATE.lock().unwrap();
         if state.recording || state.starting {
@@ -77,7 +100,7 @@ pub fn start_microphone() -> Result<(), AudioError> {
     let (response_tx, response_rx) = mpsc::channel();
     worker
         .tx
-        .send(AudioCommand::Start(response_tx))
+        .send(AudioCommand::Start(options, response_tx))
         .map_err(|_| AudioError::WorkerUnavailable)?;
 
     let start_result = response_rx
@@ -156,14 +179,14 @@ fn run_audio_worker(rx: mpsc::Receiver<AudioCommand>) {
 
     while let Ok(command) = rx.recv() {
         match command {
-            AudioCommand::Start(response_tx) => {
+            AudioCommand::Start(options, response_tx) => {
                 if active_stream.is_some() {
                     let _ = response_tx.send(Err(AudioError::AlreadyRecording));
                     continue;
                 }
 
                 let start_result =
-                    create_and_start_stream().map(|(stream, sample_rate, channel_count)| {
+                    create_and_start_stream(options).map(|(stream, sample_rate, channel_count)| {
                         active_stream = Some(stream);
                         (sample_rate, channel_count)
                     });
@@ -178,11 +201,11 @@ fn run_audio_worker(rx: mpsc::Receiver<AudioCommand>) {
     }
 }
 
-fn create_and_start_stream() -> Result<(cpal::Stream, u32, u16), AudioError> {
+fn create_and_start_stream(
+    options: RecordingOptions,
+) -> Result<(cpal::Stream, u32, u16), AudioError> {
     let host = cpal::default_host();
-    let device = host
-        .default_input_device()
-        .ok_or(AudioError::NoInputDevice)?;
+    let device = choose_input_device(&host, &options)?;
     let config = device
         .default_input_config()
         .map_err(|error| AudioError::ConfigError(error.to_string()))?;
@@ -208,6 +231,90 @@ fn create_and_start_stream() -> Result<(cpal::Stream, u32, u16), AudioError> {
         .map_err(|error| AudioError::StreamPlayError(error.to_string()))?;
 
     Ok((stream, sample_rate, channel_count))
+}
+
+fn choose_input_device(
+    host: &cpal::Host,
+    options: &RecordingOptions,
+) -> Result<cpal::Device, AudioError> {
+    let mut input_devices = host
+        .input_devices()
+        .map_err(|error| AudioError::ConfigError(error.to_string()))?;
+    let devices: Vec<cpal::Device> = input_devices.by_ref().collect();
+
+    if let Some(preferred_device_name) = options
+        .preferred_device_name
+        .as_ref()
+        .map(|name| name.trim())
+        .filter(|name| !name.is_empty() && *name != "Default input")
+    {
+        if let Some(device) = devices
+            .iter()
+            .find(|device| device.name().ok().as_deref() == Some(preferred_device_name))
+            .cloned()
+        {
+            return Ok(device);
+        }
+    }
+
+    match options.source {
+        RecordingSource::Microphone => host.default_input_device().ok_or(AudioError::NoInputDevice),
+        RecordingSource::SystemAudio => devices
+            .into_iter()
+            .find(|device| {
+                device
+                    .name()
+                    .ok()
+                    .map(|name| is_likely_system_audio_device(&name))
+                    .unwrap_or(false)
+            })
+            .or_else(|| host.default_input_device())
+            .ok_or(AudioError::NoInputDevice),
+    }
+}
+
+fn is_likely_system_audio_device(device_name: &str) -> bool {
+    let normalized_name = device_name.to_lowercase();
+    [
+        "blackhole",
+        "loopback",
+        "soundflower",
+        "vb-cable",
+        "stereo mix",
+        "aggregate",
+        "monitor",
+    ]
+    .iter()
+    .any(|keyword| normalized_name.contains(keyword))
+}
+
+pub fn list_input_devices() -> Result<Vec<AudioInputDeviceInfo>, AudioError> {
+    let host = cpal::default_host();
+    let default_input_name = host
+        .default_input_device()
+        .and_then(|device| device.name().ok());
+
+    let mut devices = vec![AudioInputDeviceInfo {
+        name: "Default input".to_string(),
+        is_default: true,
+        likely_system_audio: false,
+    }];
+
+    for device in host
+        .input_devices()
+        .map_err(|error| AudioError::ConfigError(error.to_string()))?
+    {
+        let name = device
+            .name()
+            .map_err(|error| AudioError::ConfigError(error.to_string()))?;
+        devices.push(AudioInputDeviceInfo {
+            is_default: default_input_name.as_deref() == Some(name.as_str()),
+            likely_system_audio: is_likely_system_audio_device(&name),
+            name,
+        });
+    }
+
+    Ok(devices)
 }
 
 fn build_input_stream<T>(
@@ -508,4 +615,17 @@ pub fn stop_speaking() -> Result<(), TtsError> {
     }
 
     Ok(())
+}
+
+/// Check whether TTS is currently speaking.
+pub fn is_speaking() -> Result<bool, TtsError> {
+    let mut tts_lock = TTS_INSTANCE.lock().unwrap();
+
+    if tts_lock.is_none() {
+        return Ok(false);
+    }
+
+    let tts = tts_lock.as_mut().unwrap();
+    tts.is_speaking()
+        .map_err(|error| TtsError::Speak(error.to_string()))
 }

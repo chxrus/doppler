@@ -4,7 +4,15 @@
   import Spinner from '$lib/components/ui/Spinner.svelte';
   import { chatStore } from '$lib/stores/chatStore';
   import { renderMarkdown } from '$lib/utils/markdown';
-  import { startRecording, stopRecordingAndTranscribe } from '$lib/tauri/commands';
+  import {
+    isSpeaking,
+    speakText,
+    startRecording,
+    stopRecording,
+    stopSpeaking,
+    transcribeLastRecording
+  } from '$lib/tauri/commands';
+  import SpeakButton from '$lib/components/SpeakButton.svelte';
 
   interface Props {
     onToggleSettings?: () => void | Promise<void>;
@@ -23,6 +31,9 @@
   let errorMessage = $state<string | null>(null);
   let recordingErrorMessage = $state<string | null>(null);
   let isRecordingBusy = $state(false);
+  let isTranscribingRecording = $state(false);
+  let speakingExchangeIndex = $state<number | null>(null);
+  let ttsErrorMessage = $state<string | null>(null);
 
   $effect(() => {
     const unsubExchanges = chatStore.exchanges.subscribe(value => exchanges = value);
@@ -102,13 +113,22 @@
         return;
       }
 
-      const transcription = await stopRecordingAndTranscribe();
+      await stopRecording();
       isRecording = false;
-
-      const trimmedTranscription = transcription.trim();
-      if (trimmedTranscription !== '') {
-        input = input.trim() === '' ? trimmedTranscription : `${input.trim()} ${trimmedTranscription}`;
-      }
+      isTranscribingRecording = true;
+      void transcribeLastRecording()
+        .then((transcription) => {
+          const trimmedTranscription = transcription.trim();
+          if (trimmedTranscription !== '') {
+            input = input.trim() === '' ? trimmedTranscription : `${input.trim()} ${trimmedTranscription}`;
+          }
+        })
+        .catch((error) => {
+          recordingErrorMessage = error instanceof Error ? error.message : String(error);
+        })
+        .finally(() => {
+          isTranscribingRecording = false;
+        });
     } catch (error) {
       isRecording = false;
       recordingErrorMessage = error instanceof Error ? error.message : String(error);
@@ -117,9 +137,36 @@
     }
   }
 
+  async function toggleSpeaking(exchangeIndex: number, text: string) {
+    if (speakingExchangeIndex === exchangeIndex) {
+      try {
+        await stopSpeaking();
+        speakingExchangeIndex = null;
+      } catch (error) {
+        ttsErrorMessage = error instanceof Error ? error.message : String(error);
+      }
+      return;
+    }
+
+    try {
+      if (speakingExchangeIndex != null) {
+        await stopSpeaking();
+      }
+      
+      speakingExchangeIndex = exchangeIndex;
+      ttsErrorMessage = null;
+      
+      await speakText(text);
+    } catch (error) {
+      speakingExchangeIndex = null;
+      ttsErrorMessage = error instanceof Error ? error.message : String(error);
+    }
+  }
+
   function dismissError() {
     chatStore.clearError();
     recordingErrorMessage = null;
+    ttsErrorMessage = null;
   }
 
   function isEditableTarget(target: EventTarget | null): boolean {
@@ -173,8 +220,23 @@
       }
     };
 
+    const pollSpeakingState = () => {
+      if (speakingExchangeIndex == null) return;
+      void isSpeaking()
+        .then((currentlySpeaking) => {
+          if (!currentlySpeaking) {
+            speakingExchangeIndex = null;
+          }
+        })
+        .catch(() => {
+          // Ignore transient TTS polling errors.
+        });
+    };
+
+    const speakingPollInterval = window.setInterval(pollSpeakingState, 400);
     window.addEventListener('keydown', handleHotkeys, true);
     return () => {
+      window.clearInterval(speakingPollInterval);
       window.removeEventListener('keydown', handleHotkeys, true);
     };
   });
@@ -187,6 +249,9 @@
     {/if}
     {#if recordingErrorMessage != null}
       <ErrorMessage message={recordingErrorMessage} onDismiss={dismissError} />
+    {/if}
+    {#if ttsErrorMessage != null}
+      <ErrorMessage message={ttsErrorMessage} onDismiss={dismissError} />
     {/if}
 
     <div class="flex-1 min-h-0 rounded-2xl border border-white/70 bg-white/50 backdrop-blur-xl p-3 md:p-4 flex flex-col gap-3">
@@ -232,7 +297,17 @@
           </div>
 
           <div class="rounded-2xl border border-slate-200 bg-white p-3 md:p-4 space-y-2">
-            <div class="text-[11px] uppercase tracking-wide font-semibold text-slate-500">Answer</div>
+            <div class="flex items-center justify-between">
+              <div class="text-[11px] uppercase tracking-wide font-semibold text-slate-500">Answer</div>
+              {#if !currentExchange.isPending}
+                <SpeakButton
+                  speaking={speakingExchangeIndex === currentExchangeIndex}
+                  onclick={() => {
+                    void toggleSpeaking(currentExchangeIndex, currentExchange.answer);
+                  }}
+                />
+              {/if}
+            </div>
             {#if currentExchange.isPending}
               <div class="flex items-center gap-2 text-slate-600">
                 <Spinner size="sm" />
@@ -262,9 +337,9 @@
           onclick={() => {
             void toggleRecording();
           }}
-          disabled={isRecordingBusy}
+          disabled={isRecordingBusy || isTranscribingRecording}
           aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-          title={isRecording ? 'Stop recording (Ctrl+R)' : 'Start recording (Ctrl+R)'}
+          title={isRecording ? 'Stop recording (Ctrl+R)' : isTranscribingRecording ? 'Transcribing...' : 'Start recording (Ctrl+R)'}
           data-hotkey="Ctrl+R"
         >
           <svg viewBox="0 0 24 24" class="mx-auto h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">

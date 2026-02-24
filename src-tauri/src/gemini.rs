@@ -78,7 +78,12 @@ pub async fn validate_api_key(api_key: &str) -> Result<(), GeminiError> {
     Err(parse_api_error(status, &body))
 }
 
-pub async fn send_message(api_key: &str, message: &str) -> Result<String, GeminiError> {
+pub async fn send_message(
+    api_key: &str,
+    message: &str,
+    model: Option<&str>,
+    temperature: Option<f32>,
+) -> Result<String, GeminiError> {
     let api_key = api_key.trim();
     if api_key.is_empty() {
         return Err(GeminiError::InvalidResponse("API key is empty".to_string()));
@@ -89,7 +94,13 @@ pub async fn send_message(api_key: &str, message: &str) -> Result<String, Gemini
     }
 
     let client = Client::new();
-    let url = format!("{GEMINI_BASE_URL}/models/{DEFAULT_MODEL}:generateContent");
+    let selected_model = model
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or(DEFAULT_MODEL);
+    let selected_temperature = temperature.unwrap_or(0.7);
+
+    let url = format!("{GEMINI_BASE_URL}/models/{selected_model}:generateContent");
 
     let response = client
         .post(url)
@@ -102,7 +113,7 @@ pub async fn send_message(api_key: &str, message: &str) -> Result<String, Gemini
             }],
             "generationConfig": {
                 "responseMimeType": "text/plain",
-                "temperature": 0.7,
+                "temperature": selected_temperature,
                 "maxOutputTokens": 8192
             }
         }))

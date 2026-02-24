@@ -3,6 +3,8 @@
   import { listen } from '@tauri-apps/api/event';
   import {
     getApiKey,
+    listRecordingDevices,
+    type RecordingDeviceInfo,
     saveApiKey as persistApiKey,
     setCaptureVisibility,
     setWindowAlwaysOnTop,
@@ -30,6 +32,7 @@
   let hotkeySend = $state('Enter');
   let hotkeyClickThrough = $state('CommandOrControl+Shift+X');
   let hotkeyCaptureVisibility = $state('CommandOrControl+Shift+H');
+  let recordingDevices = $state<RecordingDeviceInfo[]>([]);
 
   // Tab state
   let activeTab = $state('general');
@@ -40,6 +43,8 @@
     { id: 'overlay', label: 'Overlay' },
     { id: 'hotkeys', label: 'Hotkeys' }
   ];
+
+  const geminiModelOptions = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
 
   async function saveApiKey() {
     const trimmedApiKey = apiKey.trim();
@@ -66,6 +71,7 @@
     try {
       apiKey = (await getApiKey()) ?? '';
       await settingsStore.loadSettings();
+      recordingDevices = await listRecordingDevices();
       
       // Apply current opacity to UI
       applyUiOpacity($settingsStore.opacity);
@@ -175,9 +181,41 @@
       <!-- General Tab (Placeholder) -->
       <section class="space-y-3 rounded-2xl border border-white/70 bg-white/75 p-3">
         <h3 class="text-sm font-semibold text-slate-800">General Settings</h3>
-        <p class="text-sm text-slate-600">
-          General application settings will be available here.
-        </p>
+        <div class="space-y-2">
+          <label class="block text-xs font-medium text-slate-600" for="recording-source">
+            Recording Source
+          </label>
+          <select
+            id="recording-source"
+            class="w-full rounded-xl border border-white/75 bg-white px-3 py-2 text-sm text-slate-900"
+            bind:value={$settingsStore.recording_source}
+            onchange={() => settingsStore.updateField('recording_source', $settingsStore.recording_source)}
+          >
+            <option value="microphone">Microphone</option>
+            <option value="system">System audio (loopback)</option>
+          </select>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-xs font-medium text-slate-600" for="recording-device">
+            Recording Device
+          </label>
+          <select
+            id="recording-device"
+            class="w-full rounded-xl border border-white/75 bg-white px-3 py-2 text-sm text-slate-900"
+            bind:value={$settingsStore.recording_input_device}
+            onchange={() => settingsStore.updateField('recording_input_device', $settingsStore.recording_input_device)}
+          >
+            {#each recordingDevices as device}
+              <option value={device.name}>
+                {device.name}{device.likely_system_audio ? ' (loopback)' : ''}
+              </option>
+            {/each}
+          </select>
+          {#if recordingDevices.length === 0}
+            <p class="text-xs text-slate-500">No input devices detected.</p>
+          {/if}
+        </div>
       </section>
 
     {:else if activeTab === 'gemini'}
@@ -208,6 +246,33 @@
               {apiKeyStatusMessage}
             </p>
           {/if}
+        </div>
+        <div class="space-y-2">
+          <label class="block text-xs font-medium text-slate-600" for="gemini-model">
+            Model
+          </label>
+          <select
+            id="gemini-model"
+            class="w-full rounded-xl border border-white/75 bg-white px-3 py-2 text-sm text-slate-900"
+            bind:value={$settingsStore.gemini_model}
+            onchange={() => settingsStore.updateField('gemini_model', $settingsStore.gemini_model)}
+          >
+            {#each geminiModelOptions as model}
+              <option value={model}>{model}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="space-y-2">
+          <label class="block text-xs font-medium text-slate-600" for="gemini-temperature">
+            Temperature: {$settingsStore.gemini_temperature.toFixed(2)}
+          </label>
+          <Slider
+            min={0}
+            max={1}
+            step={0.05}
+            bind:value={$settingsStore.gemini_temperature}
+            oninput={() => settingsStore.updateField('gemini_temperature', $settingsStore.gemini_temperature, true)}
+          />
         </div>
       </section>
 

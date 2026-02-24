@@ -1,9 +1,11 @@
 use crate::audio;
 use crate::gemini;
 use crate::storage;
+use std::sync::Mutex;
 use tauri::{Emitter, Manager};
 
 const API_KEY_STORAGE_KEY: &str = "gemini_api_key";
+static LAST_RECORDED_AUDIO: Mutex<Option<audio::RecordedAudio>> = Mutex::new(None);
 
 #[tauri::command]
 pub async fn save_api_key(api_key: String) -> Result<(), String> {
@@ -51,21 +53,55 @@ pub async fn send_message(message: String) -> Result<String, String> {
         _ => format!("Failed to retrieve API key: {error}"),
     })?;
 
+    let settings =
+        storage::load_settings().map_err(|error| format!("Failed to load settings: {error}"))?;
+
     // Send message to Gemini
-    gemini::send_message(&api_key, message)
-        .await
-        .map_err(|e| format!("Failed to send message: {}", e))
+    gemini::send_message(
+        &api_key,
+        message,
+        Some(&settings.gemini_model),
+        Some(settings.gemini_temperature),
+    )
+    .await
+    .map_err(|e| format!("Failed to send message: {}", e))
 }
 
 #[tauri::command]
 pub async fn start_recording() -> Result<(), String> {
-    audio::start_microphone().map_err(|error| format!("Failed to start recording: {error}"))
+    let settings =
+        storage::load_settings().map_err(|error| format!("Failed to load settings: {error}"))?;
+    let source = match settings.recording_source.trim().to_lowercase().as_str() {
+        "system" | "system_audio" | "speakers" => audio::RecordingSource::SystemAudio,
+        _ => audio::RecordingSource::Microphone,
+    };
+
+    let options = audio::RecordingOptions {
+        source,
+        preferred_device_name: Some(settings.recording_input_device),
+    };
+
+    audio::start_microphone(options).map_err(|error| format!("Failed to start recording: {error}"))
 }
 
 #[tauri::command]
-pub async fn stop_recording_and_transcribe() -> Result<String, String> {
+pub async fn stop_recording() -> Result<(), String> {
     let recorded_audio =
         audio::stop_microphone().map_err(|error| format!("Failed to stop recording: {error}"))?;
+
+    let mut last_recorded_audio = LAST_RECORDED_AUDIO.lock().unwrap();
+    *last_recorded_audio = Some(recorded_audio);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn transcribe_last_recording() -> Result<String, String> {
+    let recorded_audio = {
+        let mut last_recorded_audio = LAST_RECORDED_AUDIO.lock().unwrap();
+        last_recorded_audio
+            .take()
+            .ok_or_else(|| "No recording available to transcribe.".to_string())?
+    };
 
     let api_key = storage::get_from_keychain(API_KEY_STORAGE_KEY).map_err(|error| match error {
         storage::StorageError::KeyNotFound => {
@@ -82,6 +118,12 @@ pub async fn stop_recording_and_transcribe() -> Result<String, String> {
     )
     .await
     .map_err(|error| format!("Failed to transcribe audio: {error}"))
+}
+
+#[tauri::command]
+pub async fn stop_recording_and_transcribe() -> Result<String, String> {
+    stop_recording().await?;
+    transcribe_last_recording().await
 }
 
 #[tauri::command]
@@ -131,11 +173,6 @@ pub async fn set_window_click_through(
 }
 
 #[tauri::command]
-pub async fn stop_recording() -> Result<String, String> {
-    stop_recording_and_transcribe().await
-}
-
-#[tauri::command]
 pub async fn speak_text(text: String) -> Result<(), String> {
     audio::speak(text).map_err(|error| format!("Failed to speak text: {error}"))
 }
@@ -143,4 +180,15 @@ pub async fn speak_text(text: String) -> Result<(), String> {
 #[tauri::command]
 pub async fn stop_speaking() -> Result<(), String> {
     audio::stop_speaking().map_err(|error| format!("Failed to stop speaking: {error}"))
+}
+
+#[tauri::command]
+pub async fn is_speaking() -> Result<bool, String> {
+    audio::is_speaking().map_err(|error| format!("Failed to get speaking status: {error}"))
+}
+
+#[tauri::command]
+pub async fn list_recording_devices() -> Result<Vec<audio::AudioInputDeviceInfo>, String> {
+    audio::list_input_devices()
+        .map_err(|error| format!("Failed to list recording devices: {error}"))
 }
