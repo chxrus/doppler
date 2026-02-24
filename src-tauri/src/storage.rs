@@ -22,12 +22,15 @@ pub enum StorageError {
 }
 
 const SERVICE_NAME: &str = "com.chxrus.doppler";
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(any(
+    all(target_os = "macos", debug_assertions),
+    not(any(target_os = "macos", target_os = "windows"))
+))]
 const SETTINGS_FILE_NAME: &str = "settings.json";
 
 /// Save a key-value pair to the OS secure storage (Keychain on macOS, Credential Manager on Windows)
 pub fn save_to_keychain(key: &str, value: &str) -> Result<(), StorageError> {
-    #[cfg(target_os = "macos")]
+    #[cfg(all(target_os = "macos", not(debug_assertions)))]
     {
         save_to_keychain_macos(key, value)
     }
@@ -37,7 +40,10 @@ pub fn save_to_keychain(key: &str, value: &str) -> Result<(), StorageError> {
         save_to_keychain_windows(key, value)
     }
 
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    #[cfg(any(
+        all(target_os = "macos", debug_assertions),
+        not(any(target_os = "macos", target_os = "windows"))
+    ))]
     {
         save_to_file_fallback(key, value)
     }
@@ -45,7 +51,7 @@ pub fn save_to_keychain(key: &str, value: &str) -> Result<(), StorageError> {
 
 /// Retrieve a value from the OS secure storage
 pub fn get_from_keychain(key: &str) -> Result<String, StorageError> {
-    #[cfg(target_os = "macos")]
+    #[cfg(all(target_os = "macos", not(debug_assertions)))]
     {
         get_from_keychain_macos(key)
     }
@@ -55,7 +61,10 @@ pub fn get_from_keychain(key: &str) -> Result<String, StorageError> {
         get_from_keychain_windows(key)
     }
 
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    #[cfg(any(
+        all(target_os = "macos", debug_assertions),
+        not(any(target_os = "macos", target_os = "windows"))
+    ))]
     {
         get_from_file_fallback(key)
     }
@@ -63,7 +72,7 @@ pub fn get_from_keychain(key: &str) -> Result<String, StorageError> {
 
 /// Delete a value from OS secure storage (or file fallback on Linux/other)
 pub fn delete_from_keychain(key: &str) -> Result<(), StorageError> {
-    #[cfg(target_os = "macos")]
+    #[cfg(all(target_os = "macos", not(debug_assertions)))]
     {
         delete_from_keychain_macos(key)
     }
@@ -73,13 +82,16 @@ pub fn delete_from_keychain(key: &str) -> Result<(), StorageError> {
         delete_from_keychain_windows(key)
     }
 
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    #[cfg(any(
+        all(target_os = "macos", debug_assertions),
+        not(any(target_os = "macos", target_os = "windows"))
+    ))]
     {
         delete_from_file_fallback(key)
     }
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(debug_assertions)))]
 fn save_to_keychain_macos(key: &str, value: &str) -> Result<(), StorageError> {
     use security_framework::passwords::{delete_generic_password, set_generic_password};
 
@@ -91,7 +103,7 @@ fn save_to_keychain_macos(key: &str, value: &str) -> Result<(), StorageError> {
         .map_err(|e| StorageError::SaveFailed(e.to_string()))
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(debug_assertions)))]
 fn get_from_keychain_macos(key: &str) -> Result<String, StorageError> {
     use security_framework::passwords::get_generic_password;
 
@@ -107,7 +119,7 @@ fn get_from_keychain_macos(key: &str) -> Result<String, StorageError> {
         .map_err(|e| StorageError::RetrieveFailed(format!("Invalid UTF-8: {}", e)))
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(debug_assertions)))]
 fn delete_from_keychain_macos(key: &str) -> Result<(), StorageError> {
     use security_framework::passwords::delete_generic_password;
 
@@ -199,27 +211,39 @@ fn delete_from_keychain_windows(key: &str) -> Result<(), StorageError> {
     }
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(any(
+    all(target_os = "macos", debug_assertions),
+    not(any(target_os = "macos", target_os = "windows"))
+))]
 fn save_to_file_fallback(key: &str, value: &str) -> Result<(), StorageError> {
     let mut settings = read_file_fallback_settings()?;
     settings.insert(key.to_string(), value.to_string());
     write_file_fallback_settings(&settings)
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(any(
+    all(target_os = "macos", debug_assertions),
+    not(any(target_os = "macos", target_os = "windows"))
+))]
 fn get_from_file_fallback(key: &str) -> Result<String, StorageError> {
     let settings = read_file_fallback_settings()?;
     settings.get(key).cloned().ok_or(StorageError::KeyNotFound)
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(any(
+    all(target_os = "macos", debug_assertions),
+    not(any(target_os = "macos", target_os = "windows"))
+))]
 fn delete_from_file_fallback(key: &str) -> Result<(), StorageError> {
     let mut settings = read_file_fallback_settings()?;
     settings.remove(key);
     write_file_fallback_settings(&settings)
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(any(
+    all(target_os = "macos", debug_assertions),
+    not(any(target_os = "macos", target_os = "windows"))
+))]
 fn read_file_fallback_settings() -> Result<std::collections::HashMap<String, String>, StorageError>
 {
     let settings_file_path = file_fallback_settings_path()?;
@@ -234,7 +258,10 @@ fn read_file_fallback_settings() -> Result<std::collections::HashMap<String, Str
         .map_err(|error| StorageError::RetrieveFailed(format!("Failed to parse settings: {error}")))
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(any(
+    all(target_os = "macos", debug_assertions),
+    not(any(target_os = "macos", target_os = "windows"))
+))]
 fn write_file_fallback_settings(
     settings: &std::collections::HashMap<String, String>,
 ) -> Result<(), StorageError> {
@@ -255,7 +282,10 @@ fn write_file_fallback_settings(
         .map_err(|error| StorageError::SaveFailed(error.to_string()))
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(any(
+    all(target_os = "macos", debug_assertions),
+    not(any(target_os = "macos", target_os = "windows"))
+))]
 fn file_fallback_settings_path() -> Result<std::path::PathBuf, StorageError> {
     let config_base = std::env::var_os("XDG_CONFIG_HOME")
         .map(std::path::PathBuf::from)
@@ -269,7 +299,13 @@ fn file_fallback_settings_path() -> Result<std::path::PathBuf, StorageError> {
     Ok(config_base.join(SERVICE_NAME).join(SETTINGS_FILE_NAME))
 }
 
-#[cfg(all(unix, not(any(target_os = "macos", target_os = "windows"))))]
+#[cfg(all(
+    unix,
+    any(
+        all(target_os = "macos", debug_assertions),
+        not(any(target_os = "macos", target_os = "windows"))
+    )
+))]
 fn set_secure_directory_permissions(path: &std::path::Path) -> std::io::Result<()> {
     use std::os::unix::fs::PermissionsExt;
 
@@ -277,7 +313,13 @@ fn set_secure_directory_permissions(path: &std::path::Path) -> std::io::Result<(
     std::fs::set_permissions(path, permissions)
 }
 
-#[cfg(all(unix, not(any(target_os = "macos", target_os = "windows"))))]
+#[cfg(all(
+    unix,
+    any(
+        all(target_os = "macos", debug_assertions),
+        not(any(target_os = "macos", target_os = "windows"))
+    )
+))]
 fn set_secure_file_permissions(path: &std::path::Path) -> std::io::Result<()> {
     use std::os::unix::fs::PermissionsExt;
 
@@ -285,12 +327,24 @@ fn set_secure_file_permissions(path: &std::path::Path) -> std::io::Result<()> {
     std::fs::set_permissions(path, permissions)
 }
 
-#[cfg(all(not(unix), not(any(target_os = "macos", target_os = "windows"))))]
+#[cfg(all(
+    not(unix),
+    any(
+        all(target_os = "macos", debug_assertions),
+        not(any(target_os = "macos", target_os = "windows"))
+    )
+))]
 fn set_secure_directory_permissions(_path: &std::path::Path) -> std::io::Result<()> {
     Ok(())
 }
 
-#[cfg(all(not(unix), not(any(target_os = "macos", target_os = "windows"))))]
+#[cfg(all(
+    not(unix),
+    any(
+        all(target_os = "macos", debug_assertions),
+        not(any(target_os = "macos", target_os = "windows"))
+    )
+))]
 fn set_secure_file_permissions(_path: &std::path::Path) -> std::io::Result<()> {
     Ok(())
 }
@@ -346,13 +400,16 @@ pub fn save_settings(settings: &Settings) -> Result<(), StorageError> {
     Ok(())
 }
 
-#[cfg(test)]
+#[cfg(all(
+    test,
+    any(all(target_os = "macos", not(debug_assertions)), target_os = "windows")
+))]
 mod tests {
     use super::*;
 
     #[test]
     #[ignore = "Requires access to OS keychain/credential vault"]
-    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    #[cfg(any(all(target_os = "macos", not(debug_assertions)), target_os = "windows"))]
     fn test_save_and_retrieve() {
         let test_key = "test_api_key";
         let test_value = "test_secret_value_12345";
@@ -390,7 +447,7 @@ mod tests {
 
     #[test]
     #[ignore = "Requires access to OS keychain/credential vault"]
-    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    #[cfg(any(all(target_os = "macos", not(debug_assertions)), target_os = "windows"))]
     fn test_retrieve_nonexistent_key() {
         let result = get_from_keychain("nonexistent_key_that_should_not_exist");
         assert!(matches!(result, Err(StorageError::KeyNotFound)));

@@ -3,6 +3,8 @@
   import { listen } from '@tauri-apps/api/event';
   import ChatView from '$lib/components/ChatView.svelte';
   import SettingsView from '$lib/components/SettingsView.svelte';
+  import { settingsStore } from '$lib/stores/settingsStore';
+  import { setWindowAlwaysOnTop, setWindowClickThrough } from '$lib/tauri/commands';
 
   let isSettingsOpen = $state(false);
   let isClickThroughEnabled = $state(false);
@@ -11,7 +13,32 @@
     isSettingsOpen = !isSettingsOpen;
   }
 
+  async function restoreOverlaySettings() {
+    await settingsStore.loadSettings();
+    const settings = $settingsStore;
+
+    // Apply opacity via CSS variable
+    document.documentElement.style.setProperty('--doppler-window-alpha', settings.opacity.toString());
+
+    // Apply always-on-top
+    try {
+      await setWindowAlwaysOnTop(settings.always_on_top);
+    } catch (error) {
+      console.warn('Failed to restore always-on-top setting:', error);
+    }
+
+    // Apply click-through
+    try {
+      await setWindowClickThrough(settings.click_through);
+      isClickThroughEnabled = settings.click_through;
+    } catch (error) {
+      console.warn('Failed to restore click-through setting:', error);
+    }
+  }
+
   onMount(() => {
+    void restoreOverlaySettings();
+
     const unlistenPromise = listen<boolean>('click-through-changed', (event) => {
       isClickThroughEnabled = event.payload;
     });

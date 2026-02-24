@@ -66,6 +66,9 @@
     try {
       apiKey = (await getApiKey()) ?? '';
       await settingsStore.loadSettings();
+      
+      // Apply current opacity to UI
+      applyUiOpacity($settingsStore.opacity);
     } catch (error) {
       console.warn('Could not load settings:', error);
     }
@@ -143,7 +146,7 @@
 
     window.addEventListener('keydown', handleHotkeys, true);
     void initializeSettings();
-    applyUiOpacity($settingsStore.opacity);
+    
     const unlistenPromise = listen<boolean>('click-through-changed', (event) => {
       settingsStore.updateField('click_through', event.payload);
     });
