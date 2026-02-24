@@ -5,6 +5,7 @@
     variant?: 'primary' | 'secondary' | 'danger';
     size?: 'sm' | 'md' | 'lg';
     disabled?: boolean;
+    loading?: boolean;
     onclick?: () => void;
     children?: Snippet;
   }
@@ -13,6 +14,7 @@
     variant = 'primary',
     size = 'md',
     disabled = false,
+    loading = false,
     onclick,
     children
   }: Props = $props();
@@ -29,14 +31,27 @@
     lg: 'px-6 py-3 text-base'
   };
 
+  const spinnerSizeClasses = {
+    sm: 'w-4 h-4 border-2',
+    md: 'w-5 h-5 border-2',
+    lg: 'w-6 h-6 border-3'
+  };
+
   const baseClasses = 'rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 
 </script>
 
 <button
   class="{baseClasses} {variantClasses[variant]} {sizeClasses[size]}"
-  {disabled}
+  disabled={disabled || loading}
   {onclick}
 >
-  {@render children?.()}
+  {#if loading}
+    <span class="inline-flex items-center gap-2">
+      <span class="inline-block {spinnerSizeClasses[size]} border-white border-t-transparent rounded-full animate-spin" role="status" aria-label="Loading"></span>
+      <span>Loading...</span>
+    </span>
+  {:else}
+    {@render children?.()}
+  {/if}
 </button>

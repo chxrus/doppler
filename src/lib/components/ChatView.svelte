@@ -2,6 +2,7 @@
   import Button from './ui/Button.svelte';
   import Input from './ui/Input.svelte';
   import ErrorMessage from './ui/ErrorMessage.svelte';
+  import Spinner from './ui/Spinner.svelte';
 
   interface Message {
     role: 'user' | 'assistant';
@@ -17,6 +18,7 @@
 
   let input = $state('');
   let isRecording = $state(false);
+  let isLoading = $state(false);
   let errorMessage = $state<string | null>('Failed to send message. Please check your API key and try again.');
 
   function sendMessage() {
@@ -27,6 +29,7 @@
 
     const messageText = input;
     input = '';
+    isLoading = true;
 
     setTimeout(() => {
       const assistantMessage: Message = {
@@ -34,7 +37,8 @@
         content: `You said: "${messageText}". This is a mock response.`
       };
       messages = [...messages, assistantMessage];
-    }, 500);
+      isLoading = false;
+    }, 1500);
   }
 
   function handleKeyPress(event: KeyboardEvent) {
@@ -74,6 +78,15 @@
         </div>
       </div>
     {/each}
+
+    <!-- Loading Indicator in Message List -->
+    {#if isLoading}
+      <div class="flex justify-start">
+        <div class="max-w-[80%] px-3 py-2 rounded-lg text-sm bg-gray-100 border border-gray-200 rounded-bl-sm">
+          <Spinner size="sm" />
+        </div>
+      </div>
+    {/if}
   </div>
 
   <!-- Input Area -->
@@ -101,6 +114,7 @@
         size="sm"
         onclick={sendMessage}
         disabled={input.trim() === ''}
+        loading={isLoading}
       >
         Send
       </Button>
