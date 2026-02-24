@@ -1,6 +1,7 @@
 <script lang="ts">
   import Button from './ui/Button.svelte';
   import Input from './ui/Input.svelte';
+  import ErrorMessage from './ui/ErrorMessage.svelte';
 
   interface Message {
     role: 'user' | 'assistant';
@@ -16,6 +17,7 @@
 
   let input = $state('');
   let isRecording = $state(false);
+  let errorMessage = $state<string | null>('Failed to send message. Please check your API key and try again.');
 
   function sendMessage() {
     if (input.trim() == null || input.trim() === '') return;
@@ -45,9 +47,20 @@
   function toggleRecording() {
     isRecording = !isRecording;
   }
+
+  function dismissError() {
+    errorMessage = null;
+  }
 </script>
 
 <div class="flex flex-col h-full bg-white">
+  <!-- Error Message -->
+  {#if errorMessage != null}
+    <div class="p-3 pb-0">
+      <ErrorMessage message={errorMessage} onDismiss={dismissError} />
+    </div>
+  {/if}
+
   <!-- Messages Area -->
   <div class="flex-1 overflow-y-auto p-3 space-y-2">
     {#each messages as message}
