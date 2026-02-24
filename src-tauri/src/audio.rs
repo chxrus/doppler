@@ -242,34 +242,64 @@ fn choose_input_device(
         .map_err(|error| AudioError::ConfigError(error.to_string()))?;
     let devices: Vec<cpal::Device> = input_devices.by_ref().collect();
 
-    if let Some(preferred_device_name) = options
+    let preferred_device = options
         .preferred_device_name
         .as_ref()
         .map(|name| name.trim())
         .filter(|name| !name.is_empty() && *name != "Default input")
-    {
-        if let Some(device) = devices
-            .iter()
-            .find(|device| device.name().ok().as_deref() == Some(preferred_device_name))
-            .cloned()
-        {
-            return Ok(device);
-        }
-    }
+        .and_then(|preferred_device_name| {
+            devices
+                .iter()
+                .find(|device| device.name().ok().as_deref() == Some(preferred_device_name))
+                .cloned()
+        });
 
     match options.source {
-        RecordingSource::Microphone => host.default_input_device().ok_or(AudioError::NoInputDevice),
-        RecordingSource::SystemAudio => devices
-            .into_iter()
-            .find(|device| {
-                device
-                    .name()
-                    .ok()
-                    .map(|name| is_likely_system_audio_device(&name))
-                    .unwrap_or(false)
-            })
-            .or_else(|| host.default_input_device())
-            .ok_or(AudioError::NoInputDevice),
+        RecordingSource::Microphone => {
+            if let Some(device) = preferred_device {
+                let device_name = device.name().unwrap_or_default();
+                if !is_likely_system_audio_device(&device_name) {
+                    return Ok(device);
+                }
+            }
+
+            // Prefer a non-loopback input when microphone source is selected.
+            if let Some(device) = host.default_input_device() {
+                let device_name = device.name().unwrap_or_default();
+                if !is_likely_system_audio_device(&device_name) {
+                    return Ok(device);
+                }
+            }
+
+            devices
+                .into_iter()
+                .find(|device| {
+                    device
+                        .name()
+                        .ok()
+                        .map(|name| !is_likely_system_audio_device(&name))
+                        .unwrap_or(false)
+                })
+                .or_else(|| host.default_input_device())
+                .ok_or(AudioError::NoInputDevice)
+        }
+        RecordingSource::SystemAudio => {
+            if let Some(device) = preferred_device {
+                return Ok(device);
+            }
+
+            devices
+                .into_iter()
+                .find(|device| {
+                    device
+                        .name()
+                        .ok()
+                        .map(|name| is_likely_system_audio_device(&name))
+                        .unwrap_or(false)
+                })
+                .or_else(|| host.default_input_device())
+                .ok_or(AudioError::NoInputDevice)
+        }
     }
 }
 
@@ -488,11 +518,11 @@ pub async fn transcribe(
             "contents": [{
                 "parts": [
                     {
-                        "text": "Transcribe this audio. Return only the transcribed text, nothing else."
+                        "text": "Transcribe this audio exactly as spoken. Preserve the original language (including Russian) and do not translate. Return only the transcription text."
                     },
                     {
-                        "inline_data": {
-                            "mime_type": "audio/wav",
+                        "inlineData": {
+                            "mimeType": "audio/wav",
                             "data": base64_audio
                         }
                     }
@@ -515,17 +545,60 @@ pub async fn transcribe(
         ))
     })?;
 
-    // Extract transcription from response
-    let text = body["candidates"]
+    if let Some(message) = body["error"]["message"]
+        .as_str()
+        .map(str::trim)
+        .filter(|message| !message.is_empty())
+    {
+        return Err(TranscriptionError::ApiError(message.to_string()));
+    }
+
+    if let Some(block_reason) = body["promptFeedback"]["blockReason"]
+        .as_str()
+        .map(str::trim)
+        .filter(|reason| !reason.is_empty())
+    {
+        return Err(TranscriptionError::ApiError(format!(
+            "Prompt blocked by Gemini: {block_reason}"
+        )));
+    }
+
+    let transcription = body["candidates"].as_array().and_then(|candidates| {
+        let mut fragments = Vec::new();
+        for candidate in candidates {
+            if let Some(parts) = candidate["content"]["parts"].as_array() {
+                for part in parts {
+                    if let Some(text) = part["text"].as_str() {
+                        let trimmed = text.trim();
+                        if !trimmed.is_empty() {
+                            fragments.push(trimmed.to_string());
+                        }
+                    }
+                }
+            }
+        }
+        if fragments.is_empty() {
+            None
+        } else {
+            Some(fragments.join("\n"))
+        }
+    });
+
+    if let Some(text) = transcription {
+        return Ok(text);
+    }
+
+    if let Some(finish_reason) = body["candidates"]
         .as_array()
         .and_then(|candidates| candidates.first())
-        .and_then(|candidate| candidate["content"]["parts"].as_array())
-        .and_then(|parts| parts.first())
-        .and_then(|part| part["text"].as_str())
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty());
+        .and_then(|candidate| candidate["finishReason"].as_str())
+    {
+        return Err(TranscriptionError::ApiError(format!(
+            "No transcription text in response (finishReason: {finish_reason})"
+        )));
+    }
 
-    text.ok_or(TranscriptionError::NoTranscription)
+    Err(TranscriptionError::NoTranscription)
 }
 
 fn base64_encode(data: &[u8]) -> String {

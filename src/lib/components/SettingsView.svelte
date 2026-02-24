@@ -45,6 +45,21 @@
   ];
 
   const geminiModelOptions = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
+  const DEFAULT_INPUT_DEVICE = 'Default input';
+
+  const filteredRecordingDevices = $derived.by(() => {
+    if ($settingsStore.recording_source === 'system') {
+      const systemDevices = recordingDevices.filter((device) => device.likely_system_audio);
+      return [
+        ...recordingDevices.filter((device) => device.name === DEFAULT_INPUT_DEVICE),
+        ...systemDevices
+      ];
+    }
+
+    return recordingDevices.filter(
+      (device) => device.name === DEFAULT_INPUT_DEVICE || !device.likely_system_audio
+    );
+  });
 
   async function saveApiKey() {
     const trimmedApiKey = apiKey.trim();
@@ -77,6 +92,16 @@
       applyUiOpacity($settingsStore.opacity);
     } catch (error) {
       console.warn('Could not load settings:', error);
+    }
+  }
+
+  function handleRecordingSourceChange() {
+    settingsStore.updateField('recording_source', $settingsStore.recording_source);
+    const hasSelectedDevice = filteredRecordingDevices.some(
+      (device) => device.name === $settingsStore.recording_input_device
+    );
+    if (!hasSelectedDevice) {
+      settingsStore.updateField('recording_input_device', DEFAULT_INPUT_DEVICE);
     }
   }
 
@@ -189,7 +214,7 @@
             id="recording-source"
             class="w-full rounded-xl border border-white/75 bg-white px-3 py-2 text-sm text-slate-900"
             bind:value={$settingsStore.recording_source}
-            onchange={() => settingsStore.updateField('recording_source', $settingsStore.recording_source)}
+            onchange={handleRecordingSourceChange}
           >
             <option value="microphone">Microphone</option>
             <option value="system">System audio (loopback)</option>
@@ -206,13 +231,13 @@
             bind:value={$settingsStore.recording_input_device}
             onchange={() => settingsStore.updateField('recording_input_device', $settingsStore.recording_input_device)}
           >
-            {#each recordingDevices as device}
+            {#each filteredRecordingDevices as device}
               <option value={device.name}>
                 {device.name}{device.likely_system_audio ? ' (loopback)' : ''}
               </option>
             {/each}
           </select>
-          {#if recordingDevices.length === 0}
+          {#if filteredRecordingDevices.length === 0}
             <p class="text-xs text-slate-500">No input devices detected.</p>
           {/if}
         </div>
