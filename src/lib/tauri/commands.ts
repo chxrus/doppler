@@ -20,6 +20,14 @@ export async function sendMessage(message: string): Promise<string> {
   return invoke<string>('send_message', { message });
 }
 
+export async function startRecording(): Promise<void> {
+  await invoke('start_recording');
+}
+
+export async function stopRecordingAndTranscribe(): Promise<string> {
+  return invoke<string>('stop_recording_and_transcribe');
+}
+
 export async function setCaptureVisibility(hideFromCapture: boolean): Promise<void> {
   await invoke('set_capture_visibility', { hideFromCapture });
 }

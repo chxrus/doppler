@@ -38,10 +38,12 @@ struct AudioState {
     recording: bool,
     starting: bool,
     audio_buffer: Vec<f32>,
+    sample_rate: u32,
+    channel_count: u16,
 }
 
 enum AudioCommand {
-    Start(mpsc::Sender<Result<(), AudioError>>),
+    Start(mpsc::Sender<Result<(u32, u16), AudioError>>),
     Stop(mpsc::Sender<Result<(), AudioError>>),
 }
 
@@ -54,6 +56,8 @@ static AUDIO_STATE: Mutex<AudioState> = Mutex::new(AudioState {
     recording: false,
     starting: false,
     audio_buffer: Vec::new(),
+    sample_rate: 0,
+    channel_count: 0,
 });
 
 static AUDIO_WORKER: OnceCell<AudioWorker> = OnceCell::new();
@@ -84,19 +88,23 @@ pub fn start_microphone() -> Result<(), AudioError> {
     state.starting = false;
 
     match start_result {
-        Ok(()) => {
+        Ok((sample_rate, channel_count)) => {
             state.recording = true;
+            state.sample_rate = sample_rate;
+            state.channel_count = channel_count;
             Ok(())
         }
         Err(error) => {
             state.recording = false;
+            state.sample_rate = 0;
+            state.channel_count = 0;
             Err(error)
         }
     }
 }
 
 /// Stop microphone recording and return captured samples.
-pub fn stop_microphone() -> Result<Vec<f32>, AudioError> {
+pub fn stop_microphone() -> Result<RecordedAudio, AudioError> {
     {
         let state = AUDIO_STATE.lock().unwrap();
         if !state.recording {
@@ -123,7 +131,11 @@ pub fn stop_microphone() -> Result<Vec<f32>, AudioError> {
         .map_err(|_| AudioError::WorkerUnavailable)??;
 
     let state = AUDIO_STATE.lock().unwrap();
-    Ok(state.audio_buffer.clone())
+    Ok(RecordedAudio {
+        samples: state.audio_buffer.clone(),
+        sample_rate: state.sample_rate,
+        channel_count: state.channel_count,
+    })
 }
 
 fn audio_worker() -> Result<&'static AudioWorker, AudioError> {
@@ -150,9 +162,11 @@ fn run_audio_worker(rx: mpsc::Receiver<AudioCommand>) {
                     continue;
                 }
 
-                let start_result = create_and_start_stream().map(|stream| {
-                    active_stream = Some(stream);
-                });
+                let start_result =
+                    create_and_start_stream().map(|(stream, sample_rate, channel_count)| {
+                        active_stream = Some(stream);
+                        (sample_rate, channel_count)
+                    });
 
                 let _ = response_tx.send(start_result);
             }
@@ -164,7 +178,7 @@ fn run_audio_worker(rx: mpsc::Receiver<AudioCommand>) {
     }
 }
 
-fn create_and_start_stream() -> Result<cpal::Stream, AudioError> {
+fn create_and_start_stream() -> Result<(cpal::Stream, u32, u16), AudioError> {
     let host = cpal::default_host();
     let device = host
         .default_input_device()
@@ -173,10 +187,14 @@ fn create_and_start_stream() -> Result<cpal::Stream, AudioError> {
         .default_input_config()
         .map_err(|error| AudioError::ConfigError(error.to_string()))?;
 
+    let stream_config: cpal::StreamConfig = config.clone().into();
+    let sample_rate = stream_config.sample_rate.0;
+    let channel_count = stream_config.channels;
+
     let stream = match config.sample_format() {
-        cpal::SampleFormat::F32 => build_input_stream::<f32>(&device, &config.into())?,
-        cpal::SampleFormat::I16 => build_input_stream::<i16>(&device, &config.into())?,
-        cpal::SampleFormat::U16 => build_input_stream::<u16>(&device, &config.into())?,
+        cpal::SampleFormat::F32 => build_input_stream::<f32>(&device, &stream_config)?,
+        cpal::SampleFormat::I16 => build_input_stream::<i16>(&device, &stream_config)?,
+        cpal::SampleFormat::U16 => build_input_stream::<u16>(&device, &stream_config)?,
         sample_format => {
             return Err(AudioError::ConfigError(format!(
                 "Unsupported sample format: {:?}",
@@ -189,7 +207,7 @@ fn create_and_start_stream() -> Result<cpal::Stream, AudioError> {
         .play()
         .map_err(|error| AudioError::StreamPlayError(error.to_string()))?;
 
-    Ok(stream)
+    Ok((stream, sample_rate, channel_count))
 }
 
 fn build_input_stream<T>(
@@ -221,4 +239,229 @@ where
             None,
         )
         .map_err(|error| AudioError::StreamBuildError(error.to_string()))
+}
+/// Convert audio samples to WAV format for API transmission.
+fn samples_to_wav(
+    samples: &[f32],
+    sample_rate: u32,
+    channel_count: u16,
+) -> Result<Vec<u8>, AudioError> {
+    use std::io::Write;
+
+    let num_channels = channel_count;
+    let bits_per_sample = 16u16;
+    let byte_rate = sample_rate * u32::from(num_channels) * u32::from(bits_per_sample) / 8;
+    let block_align = num_channels * bits_per_sample / 8;
+
+    // Convert f32 samples to i16
+    let i16_samples: Vec<i16> = samples
+        .iter()
+        .map(|&sample| {
+            let clamped = sample.clamp(-1.0, 1.0);
+            (clamped * 32767.0) as i16
+        })
+        .collect();
+
+    let data_size = (i16_samples.len() * 2) as u32;
+    let file_size = 36 + data_size;
+
+    let mut wav_data = Vec::new();
+
+    // RIFF header
+    wav_data.write_all(b"RIFF")?;
+    wav_data.write_all(&file_size.to_le_bytes())?;
+    wav_data.write_all(b"WAVE")?;
+
+    // fmt chunk
+    wav_data.write_all(b"fmt ")?;
+    wav_data.write_all(&16u32.to_le_bytes())?; // fmt chunk size
+    wav_data.write_all(&1u16.to_le_bytes())?; // audio format (PCM)
+    wav_data.write_all(&num_channels.to_le_bytes())?;
+    wav_data.write_all(&sample_rate.to_le_bytes())?;
+    wav_data.write_all(&byte_rate.to_le_bytes())?;
+    wav_data.write_all(&block_align.to_le_bytes())?;
+    wav_data.write_all(&bits_per_sample.to_le_bytes())?;
+
+    // data chunk
+    wav_data.write_all(b"data")?;
+    wav_data.write_all(&data_size.to_le_bytes())?;
+
+    for sample in i16_samples {
+        wav_data.write_all(&sample.to_le_bytes())?;
+    }
+
+    Ok(wav_data)
+}
+
+impl From<std::io::Error> for AudioError {
+    fn from(error: std::io::Error) -> Self {
+        AudioError::StreamBuildError(format!("IO error: {}", error))
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum TranscriptionError {
+    #[error("Audio conversion failed: {0}")]
+    ConversionError(String),
+
+    #[error("HTTP request failed: {0}")]
+    RequestFailed(#[from] reqwest::Error),
+
+    #[error("Invalid API response: {0}")]
+    InvalidResponse(String),
+
+    #[error("API error: {0}")]
+    ApiError(String),
+
+    #[error("No transcription in response")]
+    NoTranscription,
+
+    #[error("Audio data is empty or too short")]
+    EmptyAudio,
+}
+
+#[derive(Debug, Clone)]
+pub struct RecordedAudio {
+    pub samples: Vec<f32>,
+    pub sample_rate: u32,
+    pub channel_count: u16,
+}
+
+/// Transcribe audio samples using Gemini API.
+pub async fn transcribe(
+    api_key: &str,
+    samples: Vec<f32>,
+    sample_rate: u32,
+    channel_count: u16,
+) -> Result<String, TranscriptionError> {
+    const MIN_DURATION_MS: usize = 50;
+
+    if sample_rate == 0 {
+        return Err(TranscriptionError::ConversionError(
+            "Audio sample rate is unavailable".to_string(),
+        ));
+    }
+    if channel_count == 0 {
+        return Err(TranscriptionError::ConversionError(
+            "Audio channel count is unavailable".to_string(),
+        ));
+    }
+
+    let min_samples =
+        ((sample_rate as usize * MIN_DURATION_MS) / 1000) * usize::from(channel_count);
+    if samples.len() < min_samples {
+        return Err(TranscriptionError::EmptyAudio);
+    }
+
+    let api_key = api_key.trim();
+    if api_key.is_empty() {
+        return Err(TranscriptionError::InvalidResponse(
+            "API key is empty".to_string(),
+        ));
+    }
+
+    // Convert samples to WAV format
+    let wav_data = samples_to_wav(&samples, sample_rate, channel_count)
+        .map_err(|e| TranscriptionError::ConversionError(e.to_string()))?;
+
+    // Encode WAV as base64
+    let base64_audio = base64_encode(&wav_data);
+
+    // Call Gemini API with audio input
+    let client = reqwest::Client::new();
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent",
+        crate::gemini::default_model()
+    );
+
+    let response = client
+        .post(&url)
+        .header("x-goog-api-key", api_key)
+        .json(&serde_json::json!({
+            "contents": [{
+                "parts": [
+                    {
+                        "text": "Transcribe this audio. Return only the transcribed text, nothing else."
+                    },
+                    {
+                        "inline_data": {
+                            "mime_type": "audio/wav",
+                            "data": base64_audio
+                        }
+                    }
+                ]
+            }]
+        }))
+        .send()
+        .await?;
+
+    let status = response.status();
+    let raw_body = response.text().await?;
+
+    if !status.is_success() {
+        return Err(parse_transcription_error(status, &raw_body));
+    }
+
+    let body: serde_json::Value = serde_json::from_str(&raw_body).map_err(|error| {
+        TranscriptionError::InvalidResponse(format!(
+            "Failed to parse Gemini response (status {status}): {error}"
+        ))
+    })?;
+
+    // Extract transcription from response
+    let text = body["candidates"]
+        .as_array()
+        .and_then(|candidates| candidates.first())
+        .and_then(|candidate| candidate["content"]["parts"].as_array())
+        .and_then(|parts| parts.first())
+        .and_then(|part| part["text"].as_str())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+
+    text.ok_or(TranscriptionError::NoTranscription)
+}
+
+fn base64_encode(data: &[u8]) -> String {
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut result = Vec::new();
+
+    for chunk in data.chunks(3) {
+        let mut buf = [0u8; 3];
+        for (i, &byte) in chunk.iter().enumerate() {
+            buf[i] = byte;
+        }
+
+        let b1 = (buf[0] >> 2) as usize;
+        let b2 = (((buf[0] & 0x03) << 4) | (buf[1] >> 4)) as usize;
+        let b3 = (((buf[1] & 0x0F) << 2) | (buf[2] >> 6)) as usize;
+        let b4 = (buf[2] & 0x3F) as usize;
+
+        result.push(CHARSET[b1]);
+        result.push(CHARSET[b2]);
+
+        if chunk.len() > 1 {
+            result.push(CHARSET[b3]);
+        } else {
+            result.push(b'=');
+        }
+
+        if chunk.len() > 2 {
+            result.push(CHARSET[b4]);
+        } else {
+            result.push(b'=');
+        }
+    }
+
+    result.into_iter().map(char::from).collect()
+}
+
+fn parse_transcription_error(status: reqwest::StatusCode, raw_body: &str) -> TranscriptionError {
+    let parsed = serde_json::from_str::<serde_json::Value>(raw_body)
+        .ok()
+        .and_then(|body| body["error"]["message"].as_str().map(|s| s.to_string()));
+
+    match parsed {
+        Some(message) if !message.trim().is_empty() => TranscriptionError::ApiError(message),
+        _ => TranscriptionError::ApiError(format!("HTTP {status}")),
+    }
 }

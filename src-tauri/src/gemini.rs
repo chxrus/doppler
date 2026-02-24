@@ -6,6 +6,10 @@ use thiserror::Error;
 const GEMINI_BASE_URL: &str = "https://generativelanguage.googleapis.com/v1beta";
 const DEFAULT_MODEL: &str = "gemini-2.5-flash";
 
+pub fn default_model() -> &'static str {
+    DEFAULT_MODEL
+}
+
 #[derive(Debug, Error)]
 pub enum GeminiError {
     #[error("HTTP request failed: {0}")]

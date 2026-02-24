@@ -1,3 +1,4 @@
+use crate::audio;
 use crate::gemini;
 use crate::storage;
 use tauri::{Emitter, Manager};
@@ -54,6 +55,33 @@ pub async fn send_message(message: String) -> Result<String, String> {
     gemini::send_message(&api_key, message)
         .await
         .map_err(|e| format!("Failed to send message: {}", e))
+}
+
+#[tauri::command]
+pub async fn start_recording() -> Result<(), String> {
+    audio::start_microphone().map_err(|error| format!("Failed to start recording: {error}"))
+}
+
+#[tauri::command]
+pub async fn stop_recording_and_transcribe() -> Result<String, String> {
+    let recorded_audio =
+        audio::stop_microphone().map_err(|error| format!("Failed to stop recording: {error}"))?;
+
+    let api_key = storage::get_from_keychain(API_KEY_STORAGE_KEY).map_err(|error| match error {
+        storage::StorageError::KeyNotFound => {
+            "API key not found. Please set it in settings.".to_string()
+        }
+        _ => format!("Failed to retrieve API key: {error}"),
+    })?;
+
+    audio::transcribe(
+        &api_key,
+        recorded_audio.samples,
+        recorded_audio.sample_rate,
+        recorded_audio.channel_count,
+    )
+    .await
+    .map_err(|error| format!("Failed to transcribe audio: {error}"))
 }
 
 #[tauri::command]

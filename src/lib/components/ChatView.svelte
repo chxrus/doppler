@@ -4,6 +4,7 @@
   import Spinner from '$lib/components/ui/Spinner.svelte';
   import { chatStore } from '$lib/stores/chatStore';
   import { renderMarkdown } from '$lib/utils/markdown';
+  import { startRecording, stopRecordingAndTranscribe } from '$lib/tauri/commands';
 
   interface Props {
     onToggleSettings?: () => void | Promise<void>;
@@ -20,6 +21,8 @@
   let exchanges = $state<any[]>([]);
   let isLoading = $state(false);
   let errorMessage = $state<string | null>(null);
+  let recordingErrorMessage = $state<string | null>(null);
+  let isRecordingBusy = $state(false);
 
   $effect(() => {
     const unsubExchanges = chatStore.exchanges.subscribe(value => exchanges = value);
@@ -86,12 +89,37 @@
     }
   }
 
-  function toggleRecording() {
-    isRecording = !isRecording;
+  async function toggleRecording() {
+    if (isRecordingBusy) return;
+
+    isRecordingBusy = true;
+    recordingErrorMessage = null;
+
+    try {
+      if (!isRecording) {
+        await startRecording();
+        isRecording = true;
+        return;
+      }
+
+      const transcription = await stopRecordingAndTranscribe();
+      isRecording = false;
+
+      const trimmedTranscription = transcription.trim();
+      if (trimmedTranscription !== '') {
+        input = input.trim() === '' ? trimmedTranscription : `${input.trim()} ${trimmedTranscription}`;
+      }
+    } catch (error) {
+      isRecording = false;
+      recordingErrorMessage = error instanceof Error ? error.message : String(error);
+    } finally {
+      isRecordingBusy = false;
+    }
   }
 
   function dismissError() {
     chatStore.clearError();
+    recordingErrorMessage = null;
   }
 
   function isEditableTarget(target: EventTarget | null): boolean {
@@ -123,7 +151,7 @@
         event.code === 'KeyR'
       ) {
         event.preventDefault();
-        toggleRecording();
+        void toggleRecording();
         return;
       }
 
@@ -156,6 +184,9 @@
   <div class="h-full flex flex-col gap-3">
     {#if errorMessage != null}
       <ErrorMessage message={errorMessage} onDismiss={dismissError} />
+    {/if}
+    {#if recordingErrorMessage != null}
+      <ErrorMessage message={recordingErrorMessage} onDismiss={dismissError} />
     {/if}
 
     <div class="flex-1 min-h-0 rounded-2xl border border-white/70 bg-white/50 backdrop-blur-xl p-3 md:p-4 flex flex-col gap-3">
@@ -228,7 +259,10 @@
           class="h-11 w-11 shrink-0 rounded-xl border text-lg transition {isRecording
             ? 'border-rose-400/80 bg-rose-500/18 text-rose-700 shadow-[0_0_0_1px_rgba(244,63,94,0.18)]'
             : 'border-white/85 bg-white text-slate-700 hover:bg-slate-50'}"
-          onclick={toggleRecording}
+          onclick={() => {
+            void toggleRecording();
+          }}
+          disabled={isRecordingBusy}
           aria-label={isRecording ? 'Stop recording' : 'Start recording'}
           title={isRecording ? 'Stop recording (Ctrl+R)' : 'Start recording (Ctrl+R)'}
           data-hotkey="Ctrl+R"

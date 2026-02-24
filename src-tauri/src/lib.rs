@@ -77,6 +77,8 @@ pub fn run() {
             commands::save_api_key,
             commands::get_api_key,
             commands::send_message,
+            commands::start_recording,
+            commands::stop_recording_and_transcribe,
             commands::get_settings,
             commands::update_settings,
             commands::set_window_always_on_top,
