@@ -20,6 +20,13 @@
 
 Doppler is a lightweight, privacy-focused desktop assistant that combines the power of LLMs with voice interaction. Built with Tauri, it offers native performance with a minimal footprint.
 
+### Screenshots
+
+<div align="center">
+  <img src="static/screen-chat.png" alt="Main Chat Interface" width="45%"/>
+  <img src="static/screen-settings-general.png" alt="Settings View" width="45%"/>
+</div>
+
 ### Key Features
 
 - **Text Chat** — Direct text-based interaction with Gemini API
@@ -120,23 +127,57 @@ doppler/
 
 ---
 
-## Configuration
+## Usage
 
-### API Key Setup
+### First Launch
 
-1. Launch the application
-2. Navigate to Settings
-3. Enter your Gemini API key
-4. The key is securely stored in:
-   - macOS: Keychain
-   - Windows: Credential Manager
+1. Download and install the application
+2. Launch Doppler
+3. Navigate to Settings (gear icon)
+4. Enter your [Gemini API key](https://aistudio.google.com/app/apikey)
+5. Click "Save" to securely store the key
 
-### Hotkeys
+The API key is stored in OS-native secure storage:
+- macOS: Keychain
+- Windows: Credential Manager
 
-Default global shortcuts (customizable in Settings):
-- `Cmd/Ctrl + Shift + Space` — Toggle app visibility
-- `Cmd/Ctrl + Shift + R` — Start/stop recording
-- `Cmd/Ctrl + Shift + T` — Toggle click-through mode
+### Text Chat
+
+1. Type your question or prompt in the input field
+2. Press `Enter` or click "Send"
+3. Wait for the AI response
+4. Continue the conversation naturally
+
+### Voice Input
+
+1. Click the "Record" button or press `Cmd/Ctrl + Shift + R`
+2. Speak your question
+3. Click "Stop" or press the hotkey again
+4. Review the transcribed text
+5. Edit if needed and send
+
+### Voice Output
+
+- Click "Speak" to hear the AI response read aloud
+- Click "Stop Speak" to interrupt playback
+- Enable "Auto-speak" in Settings for automatic voice responses
+
+### Global Hotkeys
+
+Access Doppler from anywhere on your system:
+- `Cmd/Ctrl + Shift + X` — Show/hide the application
+- `Cmd/Ctrl + Shift + Space` — Toggle app (alternative)
+- `Cmd/Ctrl + Shift + R` — Start/stop voice recording
+
+Customize hotkeys in Settings → Hotkeys.
+
+### Overlay Mode
+
+For a non-intrusive experience:
+1. Enable "Always on top" in Settings
+2. Adjust opacity for transparency
+3. Enable "Click-through" to interact with apps beneath
+4. Use hotkeys to control without switching focus
 
 ---
 
@@ -193,49 +234,6 @@ Component Event → Frontend Boundary (commands.ts) → Rust Command → Service
 - **Application** — Business logic and use cases
 - **Infrastructure** — External integrations (API, filesystem, audio)
 - **State** — Shared application state
-
----
-
-## Roadmap
-
-### Phase 1 — MVP ✓
-- [x] Basic Tauri + SvelteKit setup
-- [x] Gemini API integration
-- [x] Text chat interface
-- [x] Audio recording
-- [x] Settings management
-- [x] Secure key storage
-
-### Phase 2 — In Progress
-- [ ] Speech-to-text (STT)
-- [ ] Text-to-speech (TTS)
-- [ ] Overlay mode
-- [ ] Global hotkeys
-- [ ] Click-through support
-
-### Phase 3 — Planned
-- [ ] Conversation history
-- [ ] Prompt templates
-- [ ] Multiple LLM providers
-- [ ] Push-to-talk mode
-- [ ] Auto language detection
-
----
-
-## Contributing
-
-Contributions are welcome. Please:
-
-1. Follow the coding standards in `.kiro/steering/`
-2. Write clear commit messages (see `COMMIT_STYLE.md`)
-3. Run validation commands before submitting
-4. Keep changes focused and atomic
-
----
-
-## License
-
-MIT
 
 ---
 
