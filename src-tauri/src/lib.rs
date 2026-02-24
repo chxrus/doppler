@@ -1,6 +1,7 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 mod commands;
 pub mod gemini;
+pub mod models;
 mod storage;
 
 use std::sync::Mutex;

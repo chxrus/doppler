@@ -1,3 +1,5 @@
+use crate::models::Settings;
+use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -10,6 +12,13 @@ pub enum StorageError {
 
     #[error("Key not found in keychain")]
     KeyNotFound,
+
+    #[allow(dead_code)]
+    #[error("Failed to save settings: {0}")]
+    SettingsSaveFailed(String),
+
+    #[error("Failed to load settings: {0}")]
+    SettingsLoadFailed(String),
 }
 
 const SERVICE_NAME: &str = "com.chxrus.doppler";
@@ -254,6 +263,60 @@ fn file_fallback_settings_path() -> Result<std::path::PathBuf, StorageError> {
         })?;
 
     Ok(config_base.join(SERVICE_NAME).join(SETTINGS_FILE_NAME))
+}
+
+/// Get the path to the settings JSON file
+#[allow(dead_code)]
+fn get_settings_path() -> Result<PathBuf, StorageError> {
+    let config_dir = dirs::config_dir().ok_or_else(|| {
+        StorageError::SettingsLoadFailed("Could not resolve config directory".to_string())
+    })?;
+
+    let app_config_dir = config_dir.join(SERVICE_NAME);
+    Ok(app_config_dir.join("settings.json"))
+}
+
+/// Load settings from JSON file, returning defaults if file doesn't exist
+#[allow(dead_code)]
+pub fn load_settings() -> Result<Settings, StorageError> {
+    let settings_path = get_settings_path()?;
+
+    if !settings_path.exists() {
+        return Ok(Settings::default());
+    }
+
+    let content = std::fs::read_to_string(&settings_path).map_err(|error| {
+        StorageError::SettingsLoadFailed(format!("Failed to read settings file: {}", error))
+    })?;
+
+    serde_json::from_str(&content).map_err(|error| {
+        StorageError::SettingsLoadFailed(format!("Failed to parse settings JSON: {}", error))
+    })
+}
+
+/// Save settings to JSON file
+#[allow(dead_code)]
+pub fn save_settings(settings: &Settings) -> Result<(), StorageError> {
+    let settings_path = get_settings_path()?;
+
+    if let Some(parent_dir) = settings_path.parent() {
+        std::fs::create_dir_all(parent_dir).map_err(|error| {
+            StorageError::SettingsSaveFailed(format!(
+                "Failed to create config directory: {}",
+                error
+            ))
+        })?;
+    }
+
+    let content = serde_json::to_string_pretty(settings).map_err(|error| {
+        StorageError::SettingsSaveFailed(format!("Failed to serialize settings: {}", error))
+    })?;
+
+    std::fs::write(&settings_path, content).map_err(|error| {
+        StorageError::SettingsSaveFailed(format!("Failed to write settings file: {}", error))
+    })?;
+
+    Ok(())
 }
 
 #[cfg(test)]
