@@ -7,9 +7,9 @@
   
   A cross-platform desktop application for seamless interaction with LLMs through text and voice.
   
-  [![Tauri](https://img.shields.io/badge/Tauri-2.0-blue.svg)](https://tauri.app/)
-  [![SvelteKit](https://img.shields.io/badge/SvelteKit-2.0-orange.svg)](https://kit.svelte.dev/)
-  [![Rust](https://img.shields.io/badge/Rust-1.70+-red.svg)](https://www.rust-lang.org/)
+  [![Tauri](https://img.shields.io/badge/Tauri-2-blue.svg)](https://tauri.app/)
+  [![SvelteKit](https://img.shields.io/badge/SvelteKit-2.9-orange.svg)](https://kit.svelte.dev/)
+  [![Rust](https://img.shields.io/badge/Rust-1.77.2+-red.svg)](https://www.rust-lang.org/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
   
 </div>
@@ -61,7 +61,7 @@ Doppler is a lightweight, privacy-focused desktop assistant that combines the po
 ### Prerequisites
 
 - **Node.js** 18+ and npm
-- **Rust** 1.70+ (install via [rustup](https://rustup.rs/))
+- **Rust** 1.77.2+ (install via [rustup](https://rustup.rs/))
 - **System dependencies:**
   - macOS: Xcode Command Line Tools
   - Windows: Visual Studio Build Tools
@@ -185,8 +185,8 @@ For a non-intrusive experience:
 
 This project follows strict coding standards. Please review:
 
-- [Rust/Tauri Standards](.kiro/steering/rust-tauri-standards.md)
-- [SvelteKit/TypeScript Standards](.kiro/steering/sveltekit-typescript-standards.md)
+- [Rust/Tauri Standards](src-tauri/AGENTS.md)
+- [SvelteKit/TypeScript Standards](src/AGENTS.md)
 - [Commit Style Guide](COMMIT_STYLE.md)
 
 ### Key Principles
