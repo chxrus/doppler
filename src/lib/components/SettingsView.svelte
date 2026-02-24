@@ -1,4 +1,9 @@
 <script lang="ts">
+  import Button from './ui/Button.svelte';
+  import Input from './ui/Input.svelte';
+  import Slider from './ui/Slider.svelte';
+  import Checkbox from './ui/Checkbox.svelte';
+
   // Mock settings state (no backend calls)
   let apiKey = $state('');
   let opacity = $state(0.95);
@@ -23,20 +28,14 @@
         <label for="api-key" class="block text-xs font-medium text-gray-600">
           API Key
         </label>
-        <input
-          id="api-key"
+        <Input
           type="password"
           bind:value={apiKey}
           placeholder="Enter your Gemini API key"
-          class="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
         />
-        <button
-          type="button"
-          onclick={saveApiKey}
-          class="px-3 py-1.5 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 transition-colors"
-        >
+        <Button variant="primary" size="sm" onclick={saveApiKey}>
           Save API Key
-        </button>
+        </Button>
       </div>
     </section>
 
@@ -49,45 +48,19 @@
         <label for="opacity" class="block text-xs font-medium text-gray-600">
           Opacity: {Math.round(opacity * 100)}%
         </label>
-        <input
-          id="opacity"
-          type="range"
-          min="0.2"
-          max="1"
-          step="0.05"
+        <Slider
+          min={0.2}
+          max={1}
+          step={0.05}
           bind:value={opacity}
-          class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
         />
       </div>
 
       <!-- Checkboxes -->
       <div class="space-y-2">
-        <label class="flex items-center gap-2 cursor-pointer group">
-          <input
-            type="checkbox"
-            bind:checked={alwaysOnTop}
-            class="w-3.5 h-3.5 text-blue-500 border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-          />
-          <span class="text-sm text-gray-700 group-hover:text-gray-900">Always on top</span>
-        </label>
-
-        <label class="flex items-center gap-2 cursor-pointer group">
-          <input
-            type="checkbox"
-            bind:checked={clickThrough}
-            class="w-3.5 h-3.5 text-blue-500 border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-          />
-          <span class="text-sm text-gray-700 group-hover:text-gray-900">Click-through</span>
-        </label>
-
-        <label class="flex items-center gap-2 cursor-pointer group">
-          <input
-            type="checkbox"
-            bind:checked={screenCaptureProtection}
-            class="w-3.5 h-3.5 text-blue-500 border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-          />
-          <span class="text-sm text-gray-700 group-hover:text-gray-900">Screen capture protection</span>
-        </label>
+        <Checkbox bind:checked={alwaysOnTop} label="Always on top" />
+        <Checkbox bind:checked={clickThrough} label="Click-through" />
+        <Checkbox bind:checked={screenCaptureProtection} label="Screen capture protection" />
       </div>
     </section>
 
@@ -110,12 +83,9 @@
                 {/each}
               </div>
             </div>
-            <button
-              type="button"
-              class="px-2.5 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-xs border border-gray-200"
-            >
+            <Button variant="secondary" size="sm">
               Change
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -133,12 +103,9 @@
                 {/each}
               </div>
             </div>
-            <button
-              type="button"
-              class="px-2.5 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-xs border border-gray-200"
-            >
+            <Button variant="secondary" size="sm">
               Change
-            </button>
+            </Button>
           </div>
         </div>
       </div>

@@ -1,4 +1,7 @@
 <script lang="ts">
+  import Button from './ui/Button.svelte';
+  import Input from './ui/Input.svelte';
+
   interface Message {
     role: 'user' | 'assistant';
     content: string;
@@ -62,33 +65,32 @@
 
   <!-- Input Area -->
   <div class="border-t border-gray-200 p-3 bg-white select-none">
-    <div class="flex gap-2">
-      <button
+    <div class="flex gap-2 items-center">
+      <Button
+        variant={isRecording ? 'danger' : 'secondary'}
+        size="sm"
         onclick={toggleRecording}
-        class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors select-none {isRecording
-          ? 'bg-red-500 hover:bg-red-600 text-white'
-          : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'}"
-        type="button"
       >
         {isRecording ? '⏹' : '🎤'}
-      </button>
+      </Button>
 
-      <input
-        type="text"
-        bind:value={input}
-        onkeypress={handleKeyPress}
-        placeholder="Type a message..."
-        class="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-      />
+      <div class="flex-1">
+        <Input
+          type="text"
+          bind:value={input}
+          onkeypress={handleKeyPress}
+          placeholder="Type a message..."
+        />
+      </div>
 
-      <button
+      <Button
+        variant="primary"
+        size="sm"
         onclick={sendMessage}
         disabled={input.trim() === ''}
-        class="px-4 py-1.5 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors select-none"
-        type="button"
       >
         Send
-      </button>
+      </Button>
     </div>
   </div>
 </div>
