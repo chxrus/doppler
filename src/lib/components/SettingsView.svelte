@@ -197,7 +197,7 @@
 </script>
 
 <div class="h-full flex flex-col gap-3 text-slate-900 p-3 md:p-4">
-  <div class="flex-1 min-h-0 rounded-2xl backdrop-blur-xl p-3 md:p-4 flex flex-col gap-3"
+  <div class="settings-select-fix flex-1 min-h-0 rounded-2xl backdrop-blur-xl p-3 md:p-4 flex flex-col gap-3 select-none"
     style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-alpha, 0.5));">
     <!-- Tabs Navigation -->
     <div class="pb-1">
@@ -557,12 +557,34 @@
           : 'Window is visible to screen recording (click to hide)'}
         data-hotkey="Ctrl+Shift+H"
       >
-        {#if $settingsStore.screen_capture_protection}
-          Hidden in capture
-        {:else}
-          Visible in capture
-        {/if}
+        <span class="inline-flex items-center gap-1.5">
+          {#if $settingsStore.screen_capture_protection}
+            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 2l20 20" stroke-linecap="round" />
+              <path d="M10.6 10.6A3 3 0 0012 15a3 3 0 002.4-4.8" stroke-linecap="round" />
+              <path d="M9.4 5.1A10.7 10.7 0 0121 12a10.7 10.7 0 01-4 5.6" stroke-linecap="round" />
+              <path d="M6.1 6.1A10.8 10.8 0 003 12a10.7 10.7 0 004.8 6.5" stroke-linecap="round" />
+            </svg>
+            Hidden in capture
+          {:else}
+            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            Visible in capture
+          {/if}
+        </span>
       </button>
     </div>
   </div>
 </div>
+
+<style>
+  .settings-select-fix :global(input),
+  .settings-select-fix :global(textarea),
+  .settings-select-fix :global(select),
+  .settings-select-fix :global(option) {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+</style>

@@ -4,6 +4,7 @@
   import ErrorMessage from '$lib/components/ui/ErrorMessage.svelte';
   import Spinner from '$lib/components/ui/Spinner.svelte';
   import { chatStore } from '$lib/stores/chatStore';
+  import { settingsStore } from '$lib/stores/settingsStore';
   import { renderMarkdown } from '$lib/utils/markdown';
   import {
     isSpeaking,
@@ -294,7 +295,7 @@
 
     <div class="flex-1 min-h-0 rounded-2xl border backdrop-blur-xl p-3 md:p-4 flex flex-col gap-3"
       style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-alpha, 0.5));">
-      <div class="flex items-center justify-end gap-1.5">
+      <div class="flex items-center justify-end gap-1.5 select-none">
         <button
           type="button"
           class="h-9 px-2 rounded-lg border border-white/70 bg-white/65 text-xs font-semibold text-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/95"
@@ -379,9 +380,18 @@
       </div>
     </div>
 
-    <div class="rounded-2xl border backdrop-blur-xl p-2.5 md:p-3"
-      style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.7));">
-      <div class="flex items-center gap-2">
+    <div
+      class="rounded-2xl border backdrop-blur-xl p-2.5 md:p-3 transition-all {$settingsStore.screen_capture_protection
+        ? ''
+        : 'shadow-[0_0_0_1px_rgba(245,158,11,0.55),0_0_24px_rgba(245,158,11,0.2)]'}"
+      style={$settingsStore.screen_capture_protection
+        ? 'border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.7));'
+        : 'border-color: rgba(245, 158, 11, 0.8); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.7));'}
+      title={$settingsStore.screen_capture_protection
+        ? 'Window is hidden from capture'
+        : 'Warning: window is visible in capture'}
+    >
+      <div class="flex items-center gap-2 select-none">
         <button
           type="button"
           class="h-11 w-11 shrink-0 rounded-xl border text-lg transition {isRecording
@@ -432,7 +442,7 @@
           oninput={handleInput}
           onkeypress={handleKeyPress}
           placeholder="Ask a question..."
-          class="flex-1 min-w-0 h-11 rounded-xl border px-3.5 text-[1rem] text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-300/80"
+          class="select-text flex-1 min-w-0 h-11 rounded-xl border px-3.5 text-[1rem] text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-300/80"
           style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.75)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.78));"
           title="Type question and press Enter to send"
           data-hotkey="Enter"
