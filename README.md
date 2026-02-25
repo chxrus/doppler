@@ -141,11 +141,17 @@ The API key is stored in OS-native secure storage:
 - macOS: Keychain
 - Windows: Credential Manager
 
-### Ollama (Windows / Linux)
+### Ollama (Windows / Linux / macOS)
 
 Setup instructions for local Ollama are here:
 
 - [docs/ollama-setup.md](docs/ollama-setup.md)
+
+### Handy (Local STT)
+
+Setup instructions for Handy local speech-to-text are here:
+
+- [docs/handy-setup.md](docs/handy-setup.md)
 
 ### Text Chat
 

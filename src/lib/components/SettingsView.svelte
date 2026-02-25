@@ -51,7 +51,7 @@
 
   const textProviderOptions = [
     { id: 'gemini', label: 'Gemini' },
-    { id: 'ollama', label: 'Ollama' }
+    { id: 'ollama', label: 'Ollama (local)' }
   ];
   const sttProviderOptions = [
     { id: 'gemini', label: 'Gemini' },
