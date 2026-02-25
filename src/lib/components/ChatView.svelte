@@ -385,7 +385,7 @@
     <div
       class="rounded-2xl border backdrop-blur-xl p-2.5 md:p-3 transition-all {$settingsStore.screen_capture_protection
         ? ''
-        : 'shadow-[0_0_0_1px_rgba(245,158,11,0.55),0_0_24px_rgba(245,158,11,0.2)]'}"
+        : 'shadow-[inset_0_0_0_1px_rgba(245,158,11,0.4)]'}"
       style={$settingsStore.screen_capture_protection
         ? 'border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.7));'
         : 'border-color: rgba(245, 158, 11, 0.8); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.7));'}
