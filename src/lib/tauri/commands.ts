@@ -94,6 +94,11 @@ export interface AppSettings {
   screen_capture_protection: boolean;
   hotkey_toggle: string;
   hotkey_record: string;
+  hotkey_previous: string;
+  hotkey_next: string;
+  hotkey_send: string;
+  hotkey_click_through: string;
+  hotkey_capture_visibility: string;
 }
 
 export async function getSettings(): Promise<AppSettings> {

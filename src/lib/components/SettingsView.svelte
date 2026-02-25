@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
+  import { buildHotkeyFromEvent, formatHotkeyLabel, isHotkeyPressed } from '$lib/utils/hotkeys';
   import {
     getApiKey,
     listOllamaModels,
@@ -11,7 +12,7 @@
     setWindowAlwaysOnTop,
     setWindowClickThrough
   } from '$lib/tauri/commands';
-  import { settingsStore } from '$lib/stores/settingsStore';
+  import { DEFAULT_SETTINGS, settingsStore } from '$lib/stores/settingsStore';
   import Button from '$lib/components/ui/Button.svelte';
   import Input from '$lib/components/ui/Input.svelte';
   import Slider from '$lib/components/ui/Slider.svelte';
@@ -28,11 +29,9 @@
   let isSavingApiKey = $state(false);
   let apiKeyStatusMessage = $state<string | null>(null);
   let apiKeyStatusKind = $state<'success' | 'error' | null>(null);
-  let hotkeyPrevious = $state('Alt+Left');
-  let hotkeyNext = $state('Alt+Right');
-  let hotkeySend = $state('Enter');
-  let hotkeyClickThrough = $state('CommandOrControl+Shift+X');
-  let hotkeyCaptureVisibility = $state('CommandOrControl+Shift+H');
+  let editingHotkey = $state<
+    'toggle' | 'record' | 'previous' | 'next' | 'send' | 'clickThrough' | 'captureVisibility' | null
+  >(null);
   let recordingDevices = $state<RecordingDeviceInfo[]>([]);
   let isRecordingDevicesLoading = $state(true);
   let ollamaModels = $state<string[]>([]);
@@ -75,6 +74,24 @@
       (device) => device.name === DEFAULT_INPUT_DEVICE || !device.likely_system_audio
     );
   });
+  const hotkeyTargets = {
+    toggle: 'hotkey_toggle',
+    record: 'hotkey_record',
+    previous: 'hotkey_previous',
+    next: 'hotkey_next',
+    send: 'hotkey_send',
+    clickThrough: 'hotkey_click_through',
+    captureVisibility: 'hotkey_capture_visibility'
+  } as const;
+  const defaultHotkeys: Record<keyof typeof hotkeyTargets, string> = {
+    toggle: DEFAULT_SETTINGS.hotkey_toggle,
+    record: DEFAULT_SETTINGS.hotkey_record,
+    previous: DEFAULT_SETTINGS.hotkey_previous,
+    next: DEFAULT_SETTINGS.hotkey_next,
+    send: DEFAULT_SETTINGS.hotkey_send,
+    clickThrough: DEFAULT_SETTINGS.hotkey_click_through,
+    captureVisibility: DEFAULT_SETTINGS.hotkey_capture_visibility
+  };
 
   async function saveApiKey() {
     const trimmedApiKey = apiKey.trim();
@@ -161,8 +178,32 @@
       if (token === 'CommandOrControl') return 'cmd/^';
       if (token === 'Command') return 'cmd';
       if (token === 'Control' || token === 'Ctrl') return '^';
+      if (token === ',') return ',';
       return token;
     });
+  }
+
+  function startHotkeyCapture(target: keyof typeof hotkeyTargets): void {
+    editingHotkey = target;
+  }
+
+  function applyCapturedHotkey(target: keyof typeof hotkeyTargets, hotkey: string): void {
+    const field = hotkeyTargets[target];
+    settingsStore.updateField(field, hotkey);
+  }
+
+  function resetHotkey(target: keyof typeof hotkeyTargets): void {
+    settingsStore.updateField(hotkeyTargets[target], defaultHotkeys[target]);
+    if (editingHotkey === target) {
+      editingHotkey = null;
+    }
+  }
+
+  function resetAllHotkeys(): void {
+    (Object.keys(hotkeyTargets) as Array<keyof typeof hotkeyTargets>).forEach((target) => {
+      settingsStore.updateField(hotkeyTargets[target], defaultHotkeys[target]);
+    });
+    editingHotkey = null;
   }
 
   async function applyCaptureVisibility(value: boolean) {
@@ -211,30 +252,46 @@
 
   onMount(() => {
     const handleHotkeys = (event: KeyboardEvent) => {
-      const isPrimaryModifier = event.metaKey || event.ctrlKey;
+      if (editingHotkey != null) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!event.repeat) {
+          if (event.code === 'Escape') {
+            editingHotkey = null;
+            return;
+          }
+          const captured = buildHotkeyFromEvent(event);
+          if (captured != null) {
+            applyCapturedHotkey(editingHotkey, captured);
+            editingHotkey = null;
+          }
+        }
+        return;
+      }
 
       if (
-        ((isPrimaryModifier && !event.shiftKey && !event.altKey && event.code === 'Comma') ||
-          (!event.metaKey && !event.ctrlKey && !event.altKey && event.code === 'Escape'))
+        isHotkeyPressed(event, $settingsStore.hotkey_toggle) ||
+        (!event.metaKey && !event.ctrlKey && !event.altKey && event.code === 'Escape')
       ) {
         event.preventDefault();
         onClose?.();
         return;
       }
 
-      if (
-        isPrimaryModifier &&
-        event.shiftKey &&
-        !event.altKey &&
-        event.code === 'KeyH'
-      ) {
+      if (isHotkeyPressed(event, $settingsStore.hotkey_click_through)) {
+        event.preventDefault();
+        void applyClickThrough(!$settingsStore.click_through);
+        return;
+      }
+
+      if (isHotkeyPressed(event, $settingsStore.hotkey_capture_visibility)) {
         event.preventDefault();
         void toggleCaptureVisibility();
       }
     };
 
     window.addEventListener('keydown', handleHotkeys, true);
-    void initializeSettings();
+      void initializeSettings();
     
     const unlistenPromise = listen<boolean>('click-through-changed', (event) => {
       settingsStore.updateField('click_through', event.payload);
@@ -523,7 +580,7 @@
           />
           {#if $settingsStore.click_through}
             <p class="rounded-lg border border-amber-300/70 bg-amber-50/90 px-2.5 py-2 text-xs font-medium text-amber-900">
-              Click-through is on. Turn off with <span class="font-semibold">cmd/^ + Shift + X</span>.
+              Click-through is on. Turn off with <span class="font-semibold">{formatHotkeyLabel($settingsStore.hotkey_click_through)}</span>.
             </p>
           {/if}
         </div>
@@ -532,7 +589,12 @@
     {:else if activeTab === 'hotkeys'}
       <!-- Hotkeys Tab -->
       <section class="space-y-3 p-1">
-        <h3 class="text-sm font-semibold text-slate-800">Hotkeys</h3>
+        <div class="flex items-center justify-between gap-2">
+          <h3 class="text-sm font-semibold text-slate-800">Hotkeys</h3>
+          <Button variant="secondary" size="sm" onclick={resetAllHotkeys}>
+            Reset all
+          </Button>
+        </div>
         
         <div class="space-y-2.5">
           <div class="space-y-1.5">
@@ -549,9 +611,20 @@
                   {/each}
                 </div>
               </div>
-              <Button variant="secondary" size="sm">
-                Change
+              <Button variant="secondary" size="sm" onclick={() => startHotkeyCapture('toggle')}>
+                {#if editingHotkey === 'toggle'}Press keys...{:else}Change{/if}
               </Button>
+              <button
+                type="button"
+                class="h-9 w-9 shrink-0 rounded-lg border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white"
+                onclick={() => resetHotkey('toggle')}
+                aria-label="Reset toggle settings hotkey"
+                title="Reset"
+              >
+                <svg viewBox="0 0 24 24" class="mx-auto h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -569,9 +642,20 @@
                   {/each}
                 </div>
               </div>
-              <Button variant="secondary" size="sm">
-                Change
+              <Button variant="secondary" size="sm" onclick={() => startHotkeyCapture('record')}>
+                {#if editingHotkey === 'record'}Press keys...{:else}Change{/if}
               </Button>
+              <button
+                type="button"
+                class="h-9 w-9 shrink-0 rounded-lg border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white"
+                onclick={() => resetHotkey('record')}
+                aria-label="Reset start stop recording hotkey"
+                title="Reset"
+              >
+                <svg viewBox="0 0 24 24" class="mx-auto h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -582,16 +666,27 @@
             <div class="flex items-center gap-2">
               <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
                 <div class="flex gap-1 flex-wrap">
-                  {#each formatHotkey(hotkeyPrevious) as key}
+                  {#each formatHotkey($settingsStore.hotkey_previous) as key}
                     <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
                       {key}
                     </span>
                   {/each}
                 </div>
               </div>
-              <Button variant="secondary" size="sm">
-                Change
+              <Button variant="secondary" size="sm" onclick={() => startHotkeyCapture('previous')}>
+                {#if editingHotkey === 'previous'}Press keys...{:else}Change{/if}
               </Button>
+              <button
+                type="button"
+                class="h-9 w-9 shrink-0 rounded-lg border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white"
+                onclick={() => resetHotkey('previous')}
+                aria-label="Reset previous exchange hotkey"
+                title="Reset"
+              >
+                <svg viewBox="0 0 24 24" class="mx-auto h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -602,16 +697,27 @@
             <div class="flex items-center gap-2">
               <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
                 <div class="flex gap-1 flex-wrap">
-                  {#each formatHotkey(hotkeyNext) as key}
+                  {#each formatHotkey($settingsStore.hotkey_next) as key}
                     <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
                       {key}
                     </span>
                   {/each}
                 </div>
               </div>
-              <Button variant="secondary" size="sm">
-                Change
+              <Button variant="secondary" size="sm" onclick={() => startHotkeyCapture('next')}>
+                {#if editingHotkey === 'next'}Press keys...{:else}Change{/if}
               </Button>
+              <button
+                type="button"
+                class="h-9 w-9 shrink-0 rounded-lg border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white"
+                onclick={() => resetHotkey('next')}
+                aria-label="Reset next exchange hotkey"
+                title="Reset"
+              >
+                <svg viewBox="0 0 24 24" class="mx-auto h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -622,16 +728,27 @@
             <div class="flex items-center gap-2">
               <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
                 <div class="flex gap-1 flex-wrap">
-                  {#each formatHotkey(hotkeySend) as key}
+                  {#each formatHotkey($settingsStore.hotkey_send) as key}
                     <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
                       {key}
                     </span>
                   {/each}
                 </div>
               </div>
-              <Button variant="secondary" size="sm">
-                Change
+              <Button variant="secondary" size="sm" onclick={() => startHotkeyCapture('send')}>
+                {#if editingHotkey === 'send'}Press keys...{:else}Change{/if}
               </Button>
+              <button
+                type="button"
+                class="h-9 w-9 shrink-0 rounded-lg border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white"
+                onclick={() => resetHotkey('send')}
+                aria-label="Reset send question hotkey"
+                title="Reset"
+              >
+                <svg viewBox="0 0 24 24" class="mx-auto h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -642,16 +759,27 @@
             <div class="flex items-center gap-2">
               <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
                 <div class="flex gap-1 flex-wrap">
-                  {#each formatHotkey(hotkeyClickThrough) as key}
+                  {#each formatHotkey($settingsStore.hotkey_click_through) as key}
                     <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
                       {key}
                     </span>
                   {/each}
                 </div>
               </div>
-              <Button variant="secondary" size="sm">
-                Change
+              <Button variant="secondary" size="sm" onclick={() => startHotkeyCapture('clickThrough')}>
+                {#if editingHotkey === 'clickThrough'}Press keys...{:else}Change{/if}
               </Button>
+              <button
+                type="button"
+                class="h-9 w-9 shrink-0 rounded-lg border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white"
+                onclick={() => resetHotkey('clickThrough')}
+                aria-label="Reset click-through hotkey"
+                title="Reset"
+              >
+                <svg viewBox="0 0 24 24" class="mx-auto h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -662,16 +790,27 @@
             <div class="flex items-center gap-2">
               <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
                 <div class="flex gap-1 flex-wrap">
-                  {#each formatHotkey(hotkeyCaptureVisibility) as key}
+                  {#each formatHotkey($settingsStore.hotkey_capture_visibility) as key}
                     <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
                       {key}
                     </span>
                   {/each}
                 </div>
               </div>
-              <Button variant="secondary" size="sm">
-                Change
+              <Button variant="secondary" size="sm" onclick={() => startHotkeyCapture('captureVisibility')}>
+                {#if editingHotkey === 'captureVisibility'}Press keys...{:else}Change{/if}
               </Button>
+              <button
+                type="button"
+                class="h-9 w-9 shrink-0 rounded-lg border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white"
+                onclick={() => resetHotkey('captureVisibility')}
+                aria-label="Reset capture visibility hotkey"
+                title="Reset"
+              >
+                <svg viewBox="0 0 24 24" class="mx-auto h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -687,8 +826,8 @@
         type="button"
         class="h-11 w-11 shrink-0 rounded-xl border border-white/70 bg-white/55 text-slate-500/70 cursor-not-allowed"
         aria-label="Voice input"
-        title="Voice input (Ctrl+R)"
-        data-hotkey="Ctrl+R"
+        title={`Voice input (${formatHotkeyLabel($settingsStore.hotkey_record)})`}
+        data-hotkey={formatHotkeyLabel($settingsStore.hotkey_record)}
         disabled
       >
         <svg viewBox="0 0 24 24" class="mx-auto h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
@@ -703,8 +842,8 @@
         class="h-11 w-11 shrink-0 rounded-xl border border-white bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
         onclick={onClose}
         aria-label="Close settings"
-        title="Toggle settings (Ctrl+,)"
-        data-hotkey="Ctrl+,"
+        title={`Toggle settings (${formatHotkeyLabel($settingsStore.hotkey_toggle)})`}
+        data-hotkey={formatHotkeyLabel($settingsStore.hotkey_toggle)}
       >
         <svg viewBox="0 0 24 24" class="mx-auto h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
@@ -719,7 +858,7 @@
         title={$settingsStore.screen_capture_protection
           ? 'Window is hidden from screen recording (click to make visible)'
           : 'Window is visible to screen recording (click to hide)'}
-        data-hotkey="Ctrl+Shift+H"
+        data-hotkey={formatHotkeyLabel($settingsStore.hotkey_capture_visibility)}
       >
         <span class="inline-flex items-center gap-1.5">
           {#if $settingsStore.screen_capture_protection}

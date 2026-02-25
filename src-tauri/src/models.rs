@@ -24,6 +24,11 @@ pub struct Settings {
     pub screen_capture_protection: bool,
     pub hotkey_toggle: String,
     pub hotkey_record: String,
+    pub hotkey_previous: String,
+    pub hotkey_next: String,
+    pub hotkey_send: String,
+    pub hotkey_click_through: String,
+    pub hotkey_capture_visibility: String,
 }
 
 impl Default for Settings {
@@ -42,8 +47,13 @@ impl Default for Settings {
             always_on_top: true,
             click_through: false,
             screen_capture_protection: true,
-            hotkey_toggle: "CommandOrControl+Shift+Space".to_string(),
-            hotkey_record: "CommandOrControl+Shift+R".to_string(),
+            hotkey_toggle: "CommandOrControl+,".to_string(),
+            hotkey_record: "CommandOrControl+R".to_string(),
+            hotkey_previous: "Alt+Left".to_string(),
+            hotkey_next: "Alt+Right".to_string(),
+            hotkey_send: "Enter".to_string(),
+            hotkey_click_through: "CommandOrControl+Shift+X".to_string(),
+            hotkey_capture_visibility: "CommandOrControl+Shift+H".to_string(),
         }
     }
 }

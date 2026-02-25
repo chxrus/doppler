@@ -44,7 +44,7 @@ pub fn run() {
                 let toggle_visibility_shortcut: tauri_plugin_global_shortcut::Shortcut =
                     "CmdOrCtrl+Shift+Space".parse()?;
                 let toggle_recording_shortcut: tauri_plugin_global_shortcut::Shortcut =
-                    "CmdOrCtrl+Shift+R".parse()?;
+                    "CmdOrCtrl+R".parse()?;
 
                 let toggle_click_through_id = toggle_click_through_shortcut.id();
                 let toggle_visibility_id = toggle_visibility_shortcut.id();

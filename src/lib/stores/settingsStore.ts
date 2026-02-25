@@ -17,9 +17,14 @@ export interface AppSettings {
   screen_capture_protection: boolean;
   hotkey_toggle: string;
   hotkey_record: string;
+  hotkey_previous: string;
+  hotkey_next: string;
+  hotkey_send: string;
+  hotkey_click_through: string;
+  hotkey_capture_visibility: string;
 }
 
-const defaultSettings: AppSettings = {
+export const DEFAULT_SETTINGS: AppSettings = {
   text_provider: 'gemini',
   stt_provider: 'gemini',
   gemini_model: 'gemini-2.5-flash',
@@ -33,12 +38,17 @@ const defaultSettings: AppSettings = {
   always_on_top: true,
   click_through: false,
   screen_capture_protection: true,
-  hotkey_toggle: 'CommandOrControl+Shift+Space',
-  hotkey_record: 'CommandOrControl+Shift+R'
+  hotkey_toggle: 'CommandOrControl+,',
+  hotkey_record: 'CommandOrControl+R',
+  hotkey_previous: 'Alt+Left',
+  hotkey_next: 'Alt+Right',
+  hotkey_send: 'Enter',
+  hotkey_click_through: 'CommandOrControl+Shift+X',
+  hotkey_capture_visibility: 'CommandOrControl+Shift+H'
 };
 
 function createSettingsStore() {
-  const { subscribe, set, update } = writable<AppSettings>(defaultSettings);
+  const { subscribe, set, update } = writable<AppSettings>(DEFAULT_SETTINGS);
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   return {
@@ -50,7 +60,7 @@ function createSettingsStore() {
         set(settings);
       } catch (error) {
         console.warn('Failed to load settings, using defaults:', error);
-        set(defaultSettings);
+        set(DEFAULT_SETTINGS);
       }
     },
 

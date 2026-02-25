@@ -5,9 +5,12 @@
   import Spinner from '$lib/components/ui/Spinner.svelte';
   import { chatStore } from '$lib/stores/chatStore';
   import { settingsStore } from '$lib/stores/settingsStore';
+  import { formatHotkeyLabel, isHotkeyPressed } from '$lib/utils/hotkeys';
   import { renderMarkdown } from '$lib/utils/markdown';
   import {
     isSpeaking,
+    setScreenCaptureProtection,
+    setWindowClickThrough,
     speakText,
     startRecording,
     stopRecording,
@@ -103,10 +106,29 @@
     chatStore.setInputDraft(input);
   }
 
-  function handleKeyPress(event: KeyboardEvent) {
-    if (event.key === 'Enter' && !event.shiftKey) {
+  function handleInputKeyDown(event: KeyboardEvent) {
+    if (event.isComposing) return;
+    if (isHotkeyPressed(event, $settingsStore.hotkey_send)) {
       event.preventDefault();
       sendMessage();
+    }
+  }
+
+  async function applyCaptureVisibility(value: boolean) {
+    try {
+      await setScreenCaptureProtection(value);
+      settingsStore.updateField('screen_capture_protection', value);
+    } catch (error) {
+      console.warn('Failed to set capture visibility:', error);
+    }
+  }
+
+  async function applyClickThrough(value: boolean) {
+    try {
+      await setWindowClickThrough(value);
+      settingsStore.updateField('click_through', value);
+    } catch (error) {
+      console.warn('Failed to set click-through:', error);
     }
   }
 
@@ -210,27 +232,27 @@
 
   onMount(() => {
     const handleHotkeys = (event: KeyboardEvent) => {
-      const isPrimaryModifier = event.metaKey || event.ctrlKey;
-
-      if (
-        isPrimaryModifier &&
-        !event.shiftKey &&
-        !event.altKey &&
-        event.code === 'Comma'
-      ) {
+      if (isHotkeyPressed(event, $settingsStore.hotkey_toggle)) {
         event.preventDefault();
         void onToggleSettings?.();
         return;
       }
 
-      if (
-        isPrimaryModifier &&
-        !event.shiftKey &&
-        !event.altKey &&
-        event.code === 'KeyR'
-      ) {
+      if (isHotkeyPressed(event, $settingsStore.hotkey_record)) {
         event.preventDefault();
         void toggleRecording();
+        return;
+      }
+
+      if (isHotkeyPressed(event, $settingsStore.hotkey_click_through)) {
+        event.preventDefault();
+        void applyClickThrough(!$settingsStore.click_through);
+        return;
+      }
+
+      if (isHotkeyPressed(event, $settingsStore.hotkey_capture_visibility)) {
+        event.preventDefault();
+        void applyCaptureVisibility(!$settingsStore.screen_capture_protection);
         return;
       }
 
@@ -238,17 +260,15 @@
         return;
       }
 
-      if (!event.metaKey && !event.ctrlKey && !event.shiftKey && event.altKey) {
-        if (event.code === 'ArrowLeft') {
-          event.preventDefault();
-          goToPreviousExchange();
-          return;
-        }
+      if (isHotkeyPressed(event, $settingsStore.hotkey_previous)) {
+        event.preventDefault();
+        goToPreviousExchange();
+        return;
+      }
 
-        if (event.code === 'ArrowRight') {
-          event.preventDefault();
-          goToNextExchange();
-        }
+      if (isHotkeyPressed(event, $settingsStore.hotkey_next)) {
+        event.preventDefault();
+        goToNextExchange();
       }
     };
 
@@ -313,8 +333,8 @@
           onclick={goToPreviousExchange}
           disabled={!canGoPrevious}
           aria-label="Previous exchange"
-          title="Previous exchange (Alt+Left)"
-          data-hotkey="Alt+Left"
+          title={`Previous exchange (${formatHotkeyLabel($settingsStore.hotkey_previous)})`}
+          data-hotkey={formatHotkeyLabel($settingsStore.hotkey_previous)}
           data-hotkey-position="bottom"
         >
           ←
@@ -332,8 +352,8 @@
           onclick={goToNextExchange}
           disabled={!canGoNext}
           aria-label="Next exchange"
-          title="Next exchange (Alt+Right)"
-          data-hotkey="Alt+Right"
+          title={`Next exchange (${formatHotkeyLabel($settingsStore.hotkey_next)})`}
+          data-hotkey={formatHotkeyLabel($settingsStore.hotkey_next)}
           data-hotkey-position="bottom"
         >
           →
@@ -404,8 +424,8 @@
           }}
           disabled={isRecordingBusy || isTranscribingRecording}
           aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-          title={isRecording ? 'Stop recording (Ctrl+R)' : isTranscribingRecording ? 'Transcribing...' : 'Start recording (Ctrl+R)'}
-          data-hotkey="Ctrl+R"
+          title={isRecording ? `Stop recording (${formatHotkeyLabel($settingsStore.hotkey_record)})` : isTranscribingRecording ? 'Transcribing...' : `Start recording (${formatHotkeyLabel($settingsStore.hotkey_record)})`}
+          data-hotkey={formatHotkeyLabel($settingsStore.hotkey_record)}
         >
           <svg viewBox="0 0 24 24" class="mx-auto h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="9" y="3" width="6" height="12" rx="3" />
@@ -419,8 +439,8 @@
           class="h-11 w-11 shrink-0 rounded-xl border border-white bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
           onclick={() => onToggleSettings?.()}
           aria-label={isSettingsOpen ? 'Close settings' : 'Open settings'}
-          title={isSettingsOpen ? 'Close settings (Esc)' : 'Open settings (Ctrl+,)'}
-          data-hotkey={isSettingsOpen ? 'Esc' : 'Ctrl+,'}
+          title={isSettingsOpen ? 'Close settings (Esc)' : `Open settings (${formatHotkeyLabel($settingsStore.hotkey_toggle)})`}
+          data-hotkey={isSettingsOpen ? 'Esc' : formatHotkeyLabel($settingsStore.hotkey_toggle)}
         >
           {#if isSettingsOpen}
             <svg viewBox="0 0 24 24" class="mx-auto h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
@@ -442,12 +462,12 @@
           type="text"
           bind:value={input}
           oninput={handleInput}
-          onkeypress={handleKeyPress}
+          onkeydown={handleInputKeyDown}
           placeholder="Ask a question..."
           class="select-text flex-1 min-w-0 h-11 rounded-xl border px-3.5 text-[1rem] text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-300/80"
           style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.75)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.78));"
-          title="Type question and press Enter to send"
-          data-hotkey="Enter"
+          title={`Type question and press ${formatHotkeyLabel($settingsStore.hotkey_send)} to send`}
+          data-hotkey={formatHotkeyLabel($settingsStore.hotkey_send)}
         />
 
         <button
@@ -455,8 +475,8 @@
           class="h-11 px-4 rounded-xl border border-sky-400/45 bg-sky-500/85 text-white text-sm font-semibold transition disabled:opacity-45 disabled:cursor-not-allowed hover:bg-sky-500"
           onclick={sendMessage}
           disabled={input.trim() === '' || isLoading}
-          title="Send question (Enter)"
-          data-hotkey="Enter"
+          title={`Send question (${formatHotkeyLabel($settingsStore.hotkey_send)})`}
+          data-hotkey={formatHotkeyLabel($settingsStore.hotkey_send)}
         >
           {#if isLoading}...{:else}Send{/if}
         </button>
