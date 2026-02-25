@@ -20,6 +20,10 @@ export async function sendMessage(message: string): Promise<string> {
   return invoke<string>('send_message', { message });
 }
 
+export async function listOllamaModels(baseUrl: string): Promise<string[]> {
+  return invoke<string[]>('list_ollama_models', { baseUrl });
+}
+
 export async function startRecording(): Promise<void> {
   await invoke('start_recording');
 }
@@ -75,8 +79,12 @@ export async function listRecordingDevices(): Promise<RecordingDeviceInfo[]> {
 }
 
 export interface AppSettings {
+  text_provider: string;
+  stt_provider: string;
   gemini_model: string;
   gemini_temperature: number;
+  ollama_base_url: string;
+  ollama_model: string;
   tts_rate: number;
   recording_source: string;
   recording_input_device: string;

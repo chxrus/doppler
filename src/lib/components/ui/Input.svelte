@@ -2,6 +2,7 @@
   interface Props {
     type?: string;
     placeholder?: string;
+    list?: string;
     value?: string;
     disabled?: boolean;
     oninput?: (event: Event) => void;
@@ -11,6 +12,7 @@
   let {
     type = 'text',
     placeholder = '',
+    list = undefined,
     value = $bindable(''),
     disabled = false,
     oninput,
@@ -23,6 +25,7 @@
 <input
   {type}
   {placeholder}
+  {list}
   bind:value
   {disabled}
   {oninput}

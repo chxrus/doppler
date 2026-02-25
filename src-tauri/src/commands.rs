@@ -1,5 +1,6 @@
 use crate::audio;
 use crate::gemini;
+use crate::ollama;
 use crate::storage;
 use std::sync::Mutex;
 use tauri::{Emitter, Manager};
@@ -46,25 +47,45 @@ pub async fn send_message(message: String) -> Result<String, String> {
         return Err("Message cannot be empty".to_string());
     }
 
-    let api_key = storage::get_from_keychain(API_KEY_STORAGE_KEY).map_err(|error| match error {
-        storage::StorageError::KeyNotFound => {
-            "API key not found. Please set it in settings.".to_string()
-        }
-        _ => format!("Failed to retrieve API key: {error}"),
-    })?;
-
     let settings =
         storage::load_settings().map_err(|error| format!("Failed to load settings: {error}"))?;
 
-    // Send message to Gemini
-    gemini::send_message(
-        &api_key,
-        message,
-        Some(&settings.gemini_model),
-        Some(settings.gemini_temperature),
-    )
-    .await
-    .map_err(|e| format!("Failed to send message: {}", e))
+    match settings.text_provider.trim().to_lowercase().as_str() {
+        "gemini" => {
+            let api_key =
+                storage::get_from_keychain(API_KEY_STORAGE_KEY).map_err(|error| match error {
+                    storage::StorageError::KeyNotFound => {
+                        "API key not found. Please set it in settings.".to_string()
+                    }
+                    _ => format!("Failed to retrieve API key: {error}"),
+                })?;
+
+            gemini::send_message(
+                &api_key,
+                message,
+                Some(&settings.gemini_model),
+                Some(settings.gemini_temperature),
+            )
+            .await
+            .map_err(|e| format!("Failed to send message: {e}"))
+        }
+        "ollama" => ollama::send_message(
+            Some(&settings.ollama_base_url),
+            Some(&settings.ollama_model),
+            message,
+            Some(settings.gemini_temperature),
+        )
+        .await
+        .map_err(|e| format!("Failed to send message: {e}")),
+        other => Err(format!("Unsupported text provider: {other}")),
+    }
+}
+
+#[tauri::command]
+pub async fn list_ollama_models(base_url: String) -> Result<Vec<String>, String> {
+    ollama::list_models(Some(&base_url))
+        .await
+        .map_err(|error| format!("Failed to list Ollama models: {error}"))
 }
 
 #[tauri::command]
@@ -103,21 +124,31 @@ pub async fn transcribe_last_recording() -> Result<String, String> {
             .ok_or_else(|| "No recording available to transcribe.".to_string())?
     };
 
-    let api_key = storage::get_from_keychain(API_KEY_STORAGE_KEY).map_err(|error| match error {
-        storage::StorageError::KeyNotFound => {
-            "API key not found. Please set it in settings.".to_string()
-        }
-        _ => format!("Failed to retrieve API key: {error}"),
-    })?;
+    let settings =
+        storage::load_settings().map_err(|error| format!("Failed to load settings: {error}"))?;
 
-    audio::transcribe(
-        &api_key,
-        recorded_audio.samples,
-        recorded_audio.sample_rate,
-        recorded_audio.channel_count,
-    )
-    .await
-    .map_err(|error| format!("Failed to transcribe audio: {error}"))
+    match settings.stt_provider.trim().to_lowercase().as_str() {
+        "gemini" => {
+            let api_key =
+                storage::get_from_keychain(API_KEY_STORAGE_KEY).map_err(|error| match error {
+                    storage::StorageError::KeyNotFound => {
+                        "API key not found. Please set it in settings.".to_string()
+                    }
+                    _ => format!("Failed to retrieve API key: {error}"),
+                })?;
+
+            audio::transcribe(
+                &api_key,
+                recorded_audio.samples,
+                recorded_audio.sample_rate,
+                recorded_audio.channel_count,
+            )
+            .await
+            .map_err(|error| format!("Failed to transcribe audio: {error}"))
+        }
+        "whisper" => Err("STT provider 'Whisper' is selected but not implemented yet.".to_string()),
+        other => Err(format!("Unsupported STT provider: {other}")),
+    }
 }
 
 #[tauri::command]

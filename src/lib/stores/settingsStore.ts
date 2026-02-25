@@ -2,8 +2,12 @@ import { writable } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
 
 export interface AppSettings {
+  text_provider: string;
+  stt_provider: string;
   gemini_model: string;
   gemini_temperature: number;
+  ollama_base_url: string;
+  ollama_model: string;
   tts_rate: number;
   recording_source: string;
   recording_input_device: string;
@@ -16,8 +20,12 @@ export interface AppSettings {
 }
 
 const defaultSettings: AppSettings = {
+  text_provider: 'gemini',
+  stt_provider: 'gemini',
   gemini_model: 'gemini-2.5-flash',
   gemini_temperature: 0.7,
+  ollama_base_url: 'http://localhost:11434',
+  ollama_model: 'llama3.2:3b',
   tts_rate: 1.0,
   recording_source: 'microphone',
   recording_input_device: 'Default input',

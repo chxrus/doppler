@@ -3,6 +3,7 @@
   import { listen } from '@tauri-apps/api/event';
   import {
     getApiKey,
+    listOllamaModels,
     listRecordingDevices,
     type RecordingDeviceInfo,
     saveApiKey as persistApiKey,
@@ -34,6 +35,9 @@
   let hotkeyCaptureVisibility = $state('CommandOrControl+Shift+H');
   let recordingDevices = $state<RecordingDeviceInfo[]>([]);
   let isRecordingDevicesLoading = $state(true);
+  let ollamaModels = $state<string[]>([]);
+  let isDetectingOllamaModels = $state(false);
+  let ollamaModelsErrorMessage = $state<string | null>(null);
 
   // Tab state
   let activeTab = $state('general');
@@ -47,7 +51,7 @@
 
   const textProviderOptions = [
     { id: 'gemini', label: 'Gemini' },
-    { id: 'ollama', label: 'Ollama (coming soon)' }
+    { id: 'ollama', label: 'Ollama' }
   ];
   const sttProviderOptions = [
     { id: 'gemini', label: 'Gemini' },
@@ -99,6 +103,9 @@
       apiKey = (await getApiKey()) ?? '';
       await settingsStore.loadSettings();
       recordingDevices = await listRecordingDevices();
+      if ($settingsStore.text_provider === 'ollama') {
+        void detectOllamaModels();
+      }
       
       // Apply current opacity to UI
       applyUiOpacity($settingsStore.opacity);
@@ -116,6 +123,36 @@
     );
     if (!hasSelectedDevice) {
       settingsStore.updateField('recording_input_device', DEFAULT_INPUT_DEVICE);
+    }
+  }
+
+  async function detectOllamaModels() {
+    const baseUrl = $settingsStore.ollama_base_url.trim();
+    isDetectingOllamaModels = true;
+    ollamaModelsErrorMessage = null;
+
+    try {
+      const models = await listOllamaModels(baseUrl);
+      ollamaModels = models;
+
+      if (models.length === 1) {
+        settingsStore.updateField('ollama_model', models[0]);
+      }
+    } catch (error) {
+      console.error('Could not detect Ollama models:', error);
+      ollamaModels = [];
+      ollamaModelsErrorMessage =
+        error instanceof Error ? error.message : 'Could not load Ollama models.';
+    } finally {
+      isDetectingOllamaModels = false;
+    }
+  }
+
+  function handleTextProviderChange() {
+    settingsStore.updateField('text_provider', $settingsStore.text_provider);
+
+    if ($settingsStore.text_provider === 'ollama' && ollamaModels.length === 0) {
+      void detectOllamaModels();
     }
   }
 
@@ -210,8 +247,8 @@
   });
 </script>
 
-<div class="h-full flex flex-col gap-3 text-slate-900 p-3 md:p-4">
-  <div class="settings-select-fix flex-1 min-h-0 rounded-2xl backdrop-blur-xl p-3 md:p-4 flex flex-col gap-3 select-none"
+<div class="h-full flex flex-col gap-2 text-slate-900">
+  <div class="settings-select-fix flex-1 min-h-0 rounded-2xl backdrop-blur-xl p-2 flex flex-col gap-2 select-none"
     style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-alpha, 0.5));">
     <!-- Tabs Navigation -->
     <div class="pb-1">
@@ -226,8 +263,7 @@
     <div class="flex-1 overflow-y-auto space-y-3">
     {#if activeTab === 'general'}
       <!-- General Tab (Placeholder) -->
-      <section class="space-y-3 rounded-2xl border p-3"
-        style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.75));">
+      <section class="space-y-3 p-1">
         <h3 class="text-sm font-semibold text-slate-800">General Settings</h3>
         <div class="space-y-2">
           <label class="block text-xs font-medium text-slate-600" for="recording-source">
@@ -281,8 +317,7 @@
 
     {:else if activeTab === 'ai'}
       <!-- AI Tab -->
-      <section class="space-y-3 rounded-2xl border p-3"
-        style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.75));">
+      <section class="space-y-3 p-1">
         <h3 class="text-sm font-semibold text-slate-800">AI Providers</h3>
         <div class="space-y-2">
           <label class="block text-xs font-medium text-slate-600" for="text-provider">
@@ -292,7 +327,7 @@
             id="text-provider"
             class="w-full rounded-xl border border-white/75 bg-white px-3 py-2 text-sm text-slate-900"
             bind:value={$settingsStore.text_provider}
-            onchange={() => settingsStore.updateField('text_provider', $settingsStore.text_provider)}
+            onchange={handleTextProviderChange}
           >
             {#each textProviderOptions as provider}
               <option value={provider.id}>{provider.label}</option>
@@ -316,7 +351,7 @@
         </div>
 
         {#if isGeminiTextProvider || isGeminiSttProvider}
-          <div class="space-y-2 rounded-xl border border-white/70 bg-white/70 p-2.5">
+          <div class="space-y-2 border-t border-slate-200/75 pt-2">
             <div class="text-xs font-semibold uppercase tracking-wide text-slate-700">Gemini</div>
             <label for="api-key" class="block text-xs font-medium text-slate-600">
               API Key
@@ -345,7 +380,7 @@
         {/if}
 
         {#if isGeminiTextProvider}
-          <div class="space-y-2 rounded-xl border border-white/70 bg-white/70 p-2.5">
+          <div class="space-y-2 border-t border-slate-200/75 pt-2">
             <div class="text-xs font-semibold uppercase tracking-wide text-slate-700">Gemini Text</div>
             <label class="block text-xs font-medium text-slate-600" for="gemini-model">
               Model
@@ -374,30 +409,68 @@
         {/if}
 
         {#if $settingsStore.text_provider === 'ollama'}
-          <div class="space-y-2 rounded-xl border border-amber-300/75 bg-amber-50/90 p-2.5">
-            <div class="text-xs font-semibold uppercase tracking-wide text-amber-900">Ollama</div>
-            <p class="text-xs text-amber-800">
+          <div class="space-y-2 border-t border-slate-200/75 pt-2">
+            <div class="text-xs font-semibold uppercase tracking-wide text-slate-700">Ollama</div>
+            <p class="text-xs text-slate-600">
               Use a running Ollama server (usually local) and select an installed model tag.
             </p>
-            <label class="block text-xs font-medium text-amber-900" for="ollama-base-url">
+            <label class="block text-xs font-medium text-slate-600" for="ollama-base-url">
               Base URL
             </label>
-            <Input
-              type="text"
-              bind:value={$settingsStore.ollama_base_url}
-              placeholder="http://localhost:11434"
-              oninput={() => settingsStore.updateField('ollama_base_url', $settingsStore.ollama_base_url, true)}
-            />
-            <label class="block text-xs font-medium text-amber-900" for="ollama-model">
+                <Input
+                  type="text"
+                  bind:value={$settingsStore.ollama_base_url}
+                  placeholder="http://localhost:11434"
+                  oninput={() => settingsStore.updateField('ollama_base_url', $settingsStore.ollama_base_url)}
+                />
+            <label class="block text-xs font-medium text-slate-600" for="ollama-model">
               Model
             </label>
-            <Input
-              type="text"
-              bind:value={$settingsStore.ollama_model}
-              placeholder="llama3.2:3b"
-              oninput={() => settingsStore.updateField('ollama_model', $settingsStore.ollama_model, true)}
-            />
-            <label class="block text-xs font-medium text-amber-900" for="ollama-temperature">
+            <div class="flex items-center gap-2">
+              <div class="flex-1">
+                <Input
+                  type="text"
+                  bind:value={$settingsStore.ollama_model}
+                  placeholder="llama3.2:3b"
+                  list="ollama-model-suggestions"
+                  oninput={() => settingsStore.updateField('ollama_model', $settingsStore.ollama_model)}
+                />
+              </div>
+              <button
+                type="button"
+                class="h-10 w-10 shrink-0 rounded-xl border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                onclick={() => {
+                  void detectOllamaModels();
+                }}
+                disabled={isDetectingOllamaModels}
+                aria-label="Refresh Ollama models"
+                title="Refresh Ollama models"
+              >
+                {#if isDetectingOllamaModels}
+                  <svg class="mx-auto h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12a9 9 0 11-2.64-6.36" stroke-linecap="round" />
+                    <path d="M21 3v6h-6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                {:else}
+                  <svg class="mx-auto h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12a9 9 0 11-2.64-6.36" stroke-linecap="round" />
+                    <path d="M21 3v6h-6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                {/if}
+              </button>
+            </div>
+            <datalist id="ollama-model-suggestions">
+              {#each ollamaModels as model}
+                <option value={model}></option>
+              {/each}
+            </datalist>
+            {#if ollamaModels.length > 0}
+              <p class="text-xs text-slate-600">Found models: {ollamaModels.length}</p>
+            {/if}
+            {#if ollamaModelsErrorMessage !== null}
+              <p class="text-xs text-rose-700">{ollamaModelsErrorMessage}</p>
+            {/if}
+            <label class="block text-xs font-medium text-slate-600" for="ollama-temperature">
               Temperature: {$settingsStore.gemini_temperature.toFixed(2)}
             </label>
             <Slider
@@ -411,7 +484,7 @@
         {/if}
 
         {#if $settingsStore.stt_provider === 'whisper'}
-          <p class="rounded-lg border border-amber-300/70 bg-amber-50/90 px-2.5 py-2 text-xs font-medium text-amber-900">
+          <p class="border-t border-slate-200/75 pt-2 text-xs text-slate-600">
             Whisper speech-to-text provider is selected, but backend integration is not implemented yet.
           </p>
         {/if}
@@ -419,8 +492,7 @@
 
     {:else if activeTab === 'overlay'}
       <!-- Overlay Tab -->
-      <section class="space-y-3 rounded-2xl border p-3"
-        style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.75));">
+      <section class="space-y-3 p-1">
         <h3 class="text-sm font-semibold text-slate-800">Overlay Settings</h3>
         
         <!-- Opacity Slider -->
@@ -459,8 +531,7 @@
 
     {:else if activeTab === 'hotkeys'}
       <!-- Hotkeys Tab -->
-      <section class="space-y-3 rounded-2xl border p-3"
-        style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.75));">
+      <section class="space-y-3 p-1">
         <h3 class="text-sm font-semibold text-slate-800">Hotkeys</h3>
         
         <div class="space-y-2.5">

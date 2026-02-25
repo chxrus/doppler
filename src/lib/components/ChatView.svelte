@@ -281,8 +281,8 @@
   });
 </script>
 
-<section class="h-full p-3 md:p-4">
-  <div class="h-full flex flex-col gap-3">
+<section class="h-full">
+  <div class="h-full flex flex-col gap-2">
     {#if errorMessage != null}
       <ErrorMessage message={errorMessage} onDismiss={dismissError} />
     {/if}
@@ -293,7 +293,7 @@
       <ErrorMessage message={ttsErrorMessage} onDismiss={dismissError} />
     {/if}
 
-    <div class="flex-1 min-h-0 rounded-2xl border backdrop-blur-xl p-3 md:p-4 flex flex-col gap-3"
+    <div class="flex-1 min-h-0 rounded-2xl border backdrop-blur-xl p-2 flex flex-col gap-2"
       style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-alpha, 0.5));">
       <div class="flex items-center justify-end gap-1.5 select-none">
         <button
@@ -375,7 +375,9 @@
             {/if}
           </div>
         {:else}
-          <p class="text-sm text-slate-600">No exchanges yet. Ask your first question below.</p>
+          <div class="h-full min-h-[140px] flex items-center justify-center">
+            <p class="text-sm text-slate-600 text-center">No exchanges yet. Ask your first question below.</p>
+          </div>
         {/if}
       </div>
     </div>

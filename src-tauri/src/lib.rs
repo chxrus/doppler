@@ -3,6 +3,7 @@ mod audio;
 mod commands;
 pub mod gemini;
 pub mod models;
+pub mod ollama;
 mod storage;
 
 use std::sync::Mutex;
@@ -135,6 +136,7 @@ pub fn run() {
             commands::save_api_key,
             commands::get_api_key,
             commands::send_message,
+            commands::list_ollama_models,
             commands::start_recording,
             commands::stop_recording_and_transcribe,
             commands::stop_recording,
