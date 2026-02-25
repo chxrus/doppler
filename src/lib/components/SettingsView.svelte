@@ -33,19 +33,30 @@
   let hotkeyClickThrough = $state('CommandOrControl+Shift+X');
   let hotkeyCaptureVisibility = $state('CommandOrControl+Shift+H');
   let recordingDevices = $state<RecordingDeviceInfo[]>([]);
+  let isRecordingDevicesLoading = $state(true);
 
   // Tab state
   let activeTab = $state('general');
 
   const tabs = [
     { id: 'general', label: 'General' },
-    { id: 'gemini', label: 'Gemini' },
+    { id: 'ai', label: 'AI' },
     { id: 'overlay', label: 'Overlay' },
     { id: 'hotkeys', label: 'Hotkeys' }
   ];
 
+  const textProviderOptions = [
+    { id: 'gemini', label: 'Gemini' },
+    { id: 'ollama', label: 'Ollama (coming soon)' }
+  ];
+  const sttProviderOptions = [
+    { id: 'gemini', label: 'Gemini' },
+    { id: 'whisper', label: 'Whisper (coming soon)' }
+  ];
   const geminiModelOptions = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
   const DEFAULT_INPUT_DEVICE = 'Default input';
+  const isGeminiTextProvider = $derived($settingsStore.text_provider === 'gemini');
+  const isGeminiSttProvider = $derived($settingsStore.stt_provider === 'gemini');
 
   const filteredRecordingDevices = $derived.by(() => {
     if ($settingsStore.recording_source === 'system') {
@@ -83,6 +94,7 @@
   }
 
   async function initializeSettings() {
+    isRecordingDevicesLoading = true;
     try {
       apiKey = (await getApiKey()) ?? '';
       await settingsStore.loadSettings();
@@ -92,6 +104,8 @@
       applyUiOpacity($settingsStore.opacity);
     } catch (error) {
       console.warn('Could not load settings:', error);
+    } finally {
+      isRecordingDevicesLoading = false;
     }
   }
 
@@ -246,7 +260,7 @@
               </option>
             {/each}
           </select>
-          {#if filteredRecordingDevices.length === 0}
+          {#if !isRecordingDevicesLoading && filteredRecordingDevices.length === 0}
             <p class="text-xs text-slate-500">No input devices detected.</p>
           {/if}
         </div>
@@ -265,63 +279,142 @@
         </div>
       </section>
 
-    {:else if activeTab === 'gemini'}
-      <!-- Gemini Tab -->
+    {:else if activeTab === 'ai'}
+      <!-- AI Tab -->
       <section class="space-y-3 rounded-2xl border p-3"
         style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.75));">
-        <h3 class="text-sm font-semibold text-slate-800">Gemini API</h3>
+        <h3 class="text-sm font-semibold text-slate-800">AI Providers</h3>
         <div class="space-y-2">
-          <label for="api-key" class="block text-xs font-medium text-slate-600">
-            API Key
-          </label>
-          <Input
-            type="password"
-            bind:value={apiKey}
-            placeholder="Enter your Gemini API key"
-          />
-          <Button
-            variant="primary"
-            size="sm"
-            onclick={() => {
-              void saveApiKey();
-            }}
-            disabled={isSavingApiKey}
-          >
-            {#if isSavingApiKey}Saving...{:else}Save API Key{/if}
-          </Button>
-          {#if apiKeyStatusMessage !== null}
-            <p class="text-xs {apiKeyStatusKind === 'error' ? 'text-rose-700' : 'text-emerald-700'}">
-              {apiKeyStatusMessage}
-            </p>
-          {/if}
-        </div>
-        <div class="space-y-2">
-          <label class="block text-xs font-medium text-slate-600" for="gemini-model">
-            Model
+          <label class="block text-xs font-medium text-slate-600" for="text-provider">
+            Text API Provider
           </label>
           <select
-            id="gemini-model"
+            id="text-provider"
             class="w-full rounded-xl border border-white/75 bg-white px-3 py-2 text-sm text-slate-900"
-            bind:value={$settingsStore.gemini_model}
-            onchange={() => settingsStore.updateField('gemini_model', $settingsStore.gemini_model)}
+            bind:value={$settingsStore.text_provider}
+            onchange={() => settingsStore.updateField('text_provider', $settingsStore.text_provider)}
           >
-            {#each geminiModelOptions as model}
-              <option value={model}>{model}</option>
+            {#each textProviderOptions as provider}
+              <option value={provider.id}>{provider.label}</option>
             {/each}
           </select>
         </div>
         <div class="space-y-2">
-          <label class="block text-xs font-medium text-slate-600" for="gemini-temperature">
-            Temperature: {$settingsStore.gemini_temperature.toFixed(2)}
+          <label class="block text-xs font-medium text-slate-600" for="stt-provider">
+            Speech-to-Text Provider
           </label>
-          <Slider
-            min={0}
-            max={1}
-            step={0.05}
-            bind:value={$settingsStore.gemini_temperature}
-            oninput={() => settingsStore.updateField('gemini_temperature', $settingsStore.gemini_temperature, true)}
-          />
+          <select
+            id="stt-provider"
+            class="w-full rounded-xl border border-white/75 bg-white px-3 py-2 text-sm text-slate-900"
+            bind:value={$settingsStore.stt_provider}
+            onchange={() => settingsStore.updateField('stt_provider', $settingsStore.stt_provider)}
+          >
+            {#each sttProviderOptions as provider}
+              <option value={provider.id}>{provider.label}</option>
+            {/each}
+          </select>
         </div>
+
+        {#if isGeminiTextProvider || isGeminiSttProvider}
+          <div class="space-y-2 rounded-xl border border-white/70 bg-white/70 p-2.5">
+            <div class="text-xs font-semibold uppercase tracking-wide text-slate-700">Gemini</div>
+            <label for="api-key" class="block text-xs font-medium text-slate-600">
+              API Key
+            </label>
+            <Input
+              type="password"
+              bind:value={apiKey}
+              placeholder="Enter your Gemini API key"
+            />
+            <Button
+              variant="primary"
+              size="sm"
+              onclick={() => {
+                void saveApiKey();
+              }}
+              disabled={isSavingApiKey}
+            >
+              {#if isSavingApiKey}Saving...{:else}Save API Key{/if}
+            </Button>
+            {#if apiKeyStatusMessage !== null}
+              <p class="text-xs {apiKeyStatusKind === 'error' ? 'text-rose-700' : 'text-emerald-700'}">
+                {apiKeyStatusMessage}
+              </p>
+            {/if}
+          </div>
+        {/if}
+
+        {#if isGeminiTextProvider}
+          <div class="space-y-2 rounded-xl border border-white/70 bg-white/70 p-2.5">
+            <div class="text-xs font-semibold uppercase tracking-wide text-slate-700">Gemini Text</div>
+            <label class="block text-xs font-medium text-slate-600" for="gemini-model">
+              Model
+            </label>
+            <select
+              id="gemini-model"
+              class="w-full rounded-xl border border-white/75 bg-white px-3 py-2 text-sm text-slate-900"
+              bind:value={$settingsStore.gemini_model}
+              onchange={() => settingsStore.updateField('gemini_model', $settingsStore.gemini_model)}
+            >
+              {#each geminiModelOptions as model}
+                <option value={model}>{model}</option>
+              {/each}
+            </select>
+            <label class="block text-xs font-medium text-slate-600" for="gemini-temperature">
+              Temperature: {$settingsStore.gemini_temperature.toFixed(2)}
+            </label>
+            <Slider
+              min={0}
+              max={1}
+              step={0.05}
+              bind:value={$settingsStore.gemini_temperature}
+              oninput={() => settingsStore.updateField('gemini_temperature', $settingsStore.gemini_temperature, true)}
+            />
+          </div>
+        {/if}
+
+        {#if $settingsStore.text_provider === 'ollama'}
+          <div class="space-y-2 rounded-xl border border-amber-300/75 bg-amber-50/90 p-2.5">
+            <div class="text-xs font-semibold uppercase tracking-wide text-amber-900">Ollama</div>
+            <p class="text-xs text-amber-800">
+              Use a running Ollama server (usually local) and select an installed model tag.
+            </p>
+            <label class="block text-xs font-medium text-amber-900" for="ollama-base-url">
+              Base URL
+            </label>
+            <Input
+              type="text"
+              bind:value={$settingsStore.ollama_base_url}
+              placeholder="http://localhost:11434"
+              oninput={() => settingsStore.updateField('ollama_base_url', $settingsStore.ollama_base_url, true)}
+            />
+            <label class="block text-xs font-medium text-amber-900" for="ollama-model">
+              Model
+            </label>
+            <Input
+              type="text"
+              bind:value={$settingsStore.ollama_model}
+              placeholder="llama3.2:3b"
+              oninput={() => settingsStore.updateField('ollama_model', $settingsStore.ollama_model, true)}
+            />
+            <label class="block text-xs font-medium text-amber-900" for="ollama-temperature">
+              Temperature: {$settingsStore.gemini_temperature.toFixed(2)}
+            </label>
+            <Slider
+              min={0}
+              max={1}
+              step={0.05}
+              bind:value={$settingsStore.gemini_temperature}
+              oninput={() => settingsStore.updateField('gemini_temperature', $settingsStore.gemini_temperature, true)}
+            />
+          </div>
+        {/if}
+
+        {#if $settingsStore.stt_provider === 'whisper'}
+          <p class="rounded-lg border border-amber-300/70 bg-amber-50/90 px-2.5 py-2 text-xs font-medium text-amber-900">
+            Whisper speech-to-text provider is selected, but backend integration is not implemented yet.
+          </p>
+        {/if}
       </section>
 
     {:else if activeTab === 'overlay'}
