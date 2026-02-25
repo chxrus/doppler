@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
+  import { openUrl } from '@tauri-apps/plugin-opener';
   import { buildHotkeyFromEvent, formatHotkeyLabel, isHotkeyPressed } from '$lib/utils/hotkeys';
   import {
     getApiKey,
@@ -56,6 +57,8 @@
     { id: 'gemini', label: 'Gemini' },
     { id: 'whisper', label: 'Whisper (coming soon)' }
   ];
+  const OLLAMA_SETUP_DOC_URL =
+    'https://github.com/chxrus/doppler/blob/main/docs/ollama-setup.md';
   const geminiModelOptions = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
   const DEFAULT_INPUT_DEVICE = 'Default input';
   const isGeminiTextProvider = $derived($settingsStore.text_provider === 'gemini');
@@ -162,6 +165,14 @@
         error instanceof Error ? error.message : 'Could not load Ollama models.';
     } finally {
       isDetectingOllamaModels = false;
+    }
+  }
+
+  async function openOllamaSetupDocs() {
+    try {
+      await openUrl(OLLAMA_SETUP_DOC_URL);
+    } catch (error) {
+      console.warn('Could not open Ollama setup docs:', error);
     }
   }
 
@@ -467,7 +478,20 @@
 
         {#if $settingsStore.text_provider === 'ollama'}
           <div class="space-y-2 border-t border-slate-200/75 pt-2">
-            <div class="text-xs font-semibold uppercase tracking-wide text-slate-700">Ollama</div>
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-xs font-semibold uppercase tracking-wide text-slate-700">Ollama</div>
+              <button
+                type="button"
+                class="h-6 w-6 shrink-0 rounded-md border border-white/80 bg-white/78 text-slate-700 text-xs font-semibold transition hover:bg-white"
+                onclick={() => {
+                  void openOllamaSetupDocs();
+                }}
+                aria-label="Open Ollama setup guide"
+                title="Open Ollama setup guide"
+              >
+                ?
+              </button>
+            </div>
             <p class="text-xs text-slate-600">
               Use a running Ollama server (usually local) and select an installed model tag.
             </p>

@@ -141,6 +141,12 @@ The API key is stored in OS-native secure storage:
 - macOS: Keychain
 - Windows: Credential Manager
 
+### Ollama (Windows / Linux)
+
+Setup instructions for local Ollama are here:
+
+- [docs/ollama-setup.md](docs/ollama-setup.md)
+
 ### Text Chat
 
 1. Type your question or prompt in the input field
