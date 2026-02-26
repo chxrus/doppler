@@ -1,10 +1,13 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 mod audio;
+#[cfg(feature = "local-whisper")]
+mod audio_processing;
 mod commands;
 pub mod gemini;
 pub mod models;
 pub mod ollama;
 mod storage;
+mod stt;
 
 use std::sync::Mutex;
 use tauri::{Emitter, Manager};
@@ -147,6 +150,7 @@ pub fn run() {
             commands::is_speaking,
             commands::get_settings,
             commands::update_settings,
+            commands::is_whisper_supported,
             commands::set_window_always_on_top,
             commands::set_window_click_through,
             commands::set_screen_capture_protection

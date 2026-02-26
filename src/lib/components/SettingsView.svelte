@@ -5,6 +5,7 @@
   import { buildHotkeyFromEvent, formatHotkeyLabel, isHotkeyPressed } from '$lib/utils/hotkeys';
   import {
     getApiKey,
+    isWhisperSupported,
     listOllamaModels,
     listRecordingDevices,
     type RecordingDeviceInfo,
@@ -38,6 +39,7 @@
   let ollamaModels = $state<string[]>([]);
   let isDetectingOllamaModels = $state(false);
   let ollamaModelsErrorMessage = $state<string | null>(null);
+  let whisperSupported = $state(false);
 
   // Tab state
   let activeTab = $state('general');
@@ -53,15 +55,23 @@
     { id: 'gemini', label: 'Gemini' },
     { id: 'ollama', label: 'Ollama (local)' }
   ];
-  const sttProviderOptions = [
-    { id: 'gemini', label: 'Gemini' }
-  ];
+  const sttProviderOptions = $derived.by(() => [
+    { id: 'gemini', label: 'Gemini', disabled: false },
+    {
+      id: 'whisper',
+      label: whisperSupported ? 'Whisper (local)' : 'Whisper (local, unavailable in this build)',
+      disabled: !whisperSupported
+    }
+  ]);
   const OLLAMA_SETUP_DOC_URL =
     'https://github.com/chxrus/doppler/blob/main/docs/ollama-setup.md';
+  const WHISPER_SETUP_DOC_URL =
+    'https://github.com/chxrus/doppler/blob/main/docs/whisper-setup.md';
   const geminiModelOptions = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
   const DEFAULT_INPUT_DEVICE = 'Default input';
   const isGeminiTextProvider = $derived($settingsStore.text_provider === 'gemini');
   const isGeminiSttProvider = $derived($settingsStore.stt_provider === 'gemini');
+  const isWhisperSttProvider = $derived(whisperSupported && $settingsStore.stt_provider === 'whisper');
 
   const filteredRecordingDevices = $derived.by(() => {
     if ($settingsStore.recording_source === 'system') {
@@ -120,7 +130,11 @@
     isRecordingDevicesLoading = true;
     try {
       apiKey = (await getApiKey()) ?? '';
+      whisperSupported = await isWhisperSupported();
       await settingsStore.loadSettings();
+      if (!whisperSupported && $settingsStore.stt_provider === 'whisper') {
+        settingsStore.updateField('stt_provider', 'gemini');
+      }
       recordingDevices = await listRecordingDevices();
       if ($settingsStore.text_provider === 'ollama') {
         void detectOllamaModels();
@@ -175,6 +189,14 @@
     }
   }
 
+  async function openWhisperSetupDocs() {
+    try {
+      await openUrl(WHISPER_SETUP_DOC_URL);
+    } catch (error) {
+      console.warn('Could not open Whisper setup docs:', error);
+    }
+  }
+
   function handleTextProviderChange() {
     settingsStore.updateField('text_provider', $settingsStore.text_provider);
 
@@ -185,6 +207,29 @@
 
   function handleSttProviderChange() {
     settingsStore.updateField('stt_provider', $settingsStore.stt_provider);
+  }
+
+  function updateWhisperModelPath(value: string) {
+    settingsStore.updateField('whisper_model_path', value);
+  }
+
+  function updateWhisperLanguage(value: string) {
+    settingsStore.updateField('whisper_language', value);
+  }
+
+  function updateWhisperThreads(value: string) {
+    const trimmedValue = value.trim();
+    if (trimmedValue === '') {
+      settingsStore.updateField('whisper_threads', null);
+      return;
+    }
+
+    const parsedValue = Number.parseInt(trimmedValue, 10);
+    if (Number.isNaN(parsedValue) || parsedValue <= 0) {
+      return;
+    }
+
+    settingsStore.updateField('whisper_threads', parsedValue);
   }
 
   function formatHotkey(hotkey: string): string[] {
@@ -416,9 +461,15 @@
             onchange={handleSttProviderChange}
           >
             {#each sttProviderOptions as provider}
-              <option value={provider.id}>{provider.label}</option>
+              <option value={provider.id} disabled={provider.disabled}>{provider.label}</option>
             {/each}
           </select>
+          {#if !whisperSupported}
+            <p class="text-xs text-slate-600">
+              Whisper is disabled in this app build. Rebuild backend with Cargo feature
+              <span class="font-semibold">local-whisper</span>.
+            </p>
+          {/if}
         </div>
 
         {#if isGeminiTextProvider || isGeminiSttProvider}
@@ -475,6 +526,72 @@
               step={0.05}
               bind:value={$settingsStore.gemini_temperature}
               oninput={() => settingsStore.updateField('gemini_temperature', $settingsStore.gemini_temperature, true)}
+            />
+          </div>
+        {/if}
+
+        {#if isWhisperSttProvider}
+          <div class="space-y-2 border-t border-slate-200/75 pt-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-xs font-semibold uppercase tracking-wide text-slate-700">Whisper</div>
+              <button
+                type="button"
+                class="h-6 w-6 shrink-0 rounded-md border border-white/80 bg-white/78 text-slate-700 text-xs font-semibold transition hover:bg-white"
+                onclick={() => {
+                  void openWhisperSetupDocs();
+                }}
+                aria-label="Open Whisper setup guide"
+                title="Open Whisper setup guide"
+              >
+                ?
+              </button>
+            </div>
+            <p class="text-xs text-slate-600">
+              Download a GGML model and configure local transcription following the GitHub guide:
+              <a
+                href={WHISPER_SETUP_DOC_URL}
+                class="underline decoration-slate-400 underline-offset-2 hover:text-slate-800"
+                target="_blank"
+                rel="noreferrer"
+                onclick={(event) => {
+                  event.preventDefault();
+                  void openWhisperSetupDocs();
+                }}
+              >
+                whisper.cpp quick start
+              </a>
+            </p>
+            <label for="whisper-model-path" class="block text-xs font-medium text-slate-600">
+              Model path
+            </label>
+            <Input
+              type="text"
+              bind:value={$settingsStore.whisper_model_path}
+              placeholder="/path/to/ggml-model.bin"
+              oninput={() => updateWhisperModelPath($settingsStore.whisper_model_path)}
+            />
+            {#if $settingsStore.whisper_model_path.trim() === ''}
+              <p class="text-xs text-amber-700">
+                Set model path for Whisper. Save is allowed; transcription will fail until path is set.
+              </p>
+            {/if}
+            <label for="whisper-language" class="block text-xs font-medium text-slate-600">
+              Language (optional)
+            </label>
+            <Input
+              type="text"
+              bind:value={$settingsStore.whisper_language}
+              placeholder="auto (empty), en, ru..."
+              oninput={() => updateWhisperLanguage($settingsStore.whisper_language)}
+            />
+            <label for="whisper-threads" class="block text-xs font-medium text-slate-600">
+              Threads (optional)
+            </label>
+            <Input
+              type="number"
+              value={$settingsStore.whisper_threads?.toString() ?? ''}
+              placeholder="auto"
+              oninput={(event) => updateWhisperThreads((event.currentTarget as HTMLInputElement).value)}
             />
           </div>
         {/if}

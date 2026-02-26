@@ -83,6 +83,9 @@ export interface AppSettings {
   stt_provider: string;
   gemini_model: string;
   gemini_temperature: number;
+  whisper_model_path: string;
+  whisper_language: string;
+  whisper_threads: number | null;
   ollama_base_url: string;
   ollama_model: string;
   tts_rate: number;
@@ -107,4 +110,8 @@ export async function getSettings(): Promise<AppSettings> {
 
 export async function updateSettings(settings: AppSettings): Promise<void> {
   await invoke('update_settings', { settings });
+}
+
+export async function isWhisperSupported(): Promise<boolean> {
+  return invoke<boolean>('is_whisper_supported');
 }

@@ -2,6 +2,7 @@ use crate::audio;
 use crate::gemini;
 use crate::ollama;
 use crate::storage;
+use crate::stt;
 use std::sync::Mutex;
 use tauri::{Emitter, Manager};
 
@@ -127,31 +128,7 @@ pub async fn transcribe_last_recording() -> Result<String, String> {
     let settings =
         storage::load_settings().map_err(|error| format!("Failed to load settings: {error}"))?;
 
-    match settings.stt_provider.trim().to_lowercase().as_str() {
-        "gemini" => {
-            let api_key =
-                storage::get_from_keychain(API_KEY_STORAGE_KEY).map_err(|error| match error {
-                    storage::StorageError::KeyNotFound => {
-                        "API key not found. Please set it in settings.".to_string()
-                    }
-                    _ => format!("Failed to retrieve API key: {error}"),
-                })?;
-
-            audio::transcribe(
-                &api_key,
-                recorded_audio.samples,
-                recorded_audio.sample_rate,
-                recorded_audio.channel_count,
-            )
-            .await
-            .map_err(|error| format!("Failed to transcribe audio: {error}"))
-        }
-        "whisper" => Err(
-            "STT provider is no longer supported. Switch to 'Gemini' in Settings -> AI."
-                .to_string(),
-        ),
-        other => Err(format!("Unsupported STT provider: {other}")),
-    }
+    stt::transcribe(recorded_audio, &settings).await
 }
 
 #[tauri::command]
@@ -168,6 +145,11 @@ pub async fn get_settings() -> Result<crate::models::Settings, String> {
 #[tauri::command]
 pub async fn update_settings(settings: crate::models::Settings) -> Result<(), String> {
     storage::save_settings(&settings).map_err(|error| format!("Failed to save settings: {}", error))
+}
+
+#[tauri::command]
+pub fn is_whisper_supported() -> bool {
+    cfg!(feature = "local-whisper")
 }
 
 #[tauri::command]

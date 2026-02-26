@@ -6,6 +6,9 @@ export interface AppSettings {
   stt_provider: string;
   gemini_model: string;
   gemini_temperature: number;
+  whisper_model_path: string;
+  whisper_language: string;
+  whisper_threads: number | null;
   ollama_base_url: string;
   ollama_model: string;
   tts_rate: number;
@@ -29,6 +32,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   stt_provider: 'gemini',
   gemini_model: 'gemini-2.5-flash',
   gemini_temperature: 0.7,
+  whisper_model_path: '',
+  whisper_language: '',
+  whisper_threads: null,
   ollama_base_url: 'http://localhost:11434',
   ollama_model: 'llama3.2:3b',
   tts_rate: 1.0,
@@ -58,9 +64,14 @@ function createSettingsStore() {
       try {
         const settings = await invoke<AppSettings>('get_settings');
         const merged = { ...DEFAULT_SETTINGS, ...settings };
-        if (merged.stt_provider === 'whisper') {
-          merged.stt_provider = 'gemini';
-        }
+        merged.whisper_model_path =
+          typeof merged.whisper_model_path === 'string' ? merged.whisper_model_path : '';
+        merged.whisper_language =
+          typeof merged.whisper_language === 'string' ? merged.whisper_language : '';
+        merged.whisper_threads =
+          typeof merged.whisper_threads === 'number' && merged.whisper_threads > 0
+            ? merged.whisper_threads
+            : null;
         set(merged);
       } catch (error) {
         console.warn('Failed to load settings, using defaults:', error);
