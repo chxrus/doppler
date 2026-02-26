@@ -139,6 +139,7 @@ pub fn run() {
             commands::save_api_key,
             commands::get_api_key,
             commands::send_message,
+            commands::send_message_stream,
             commands::list_ollama_models,
             commands::start_recording,
             commands::stop_recording_and_transcribe,

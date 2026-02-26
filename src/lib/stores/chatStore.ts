@@ -1,11 +1,17 @@
 import { writable, derived } from 'svelte/store';
-import { sendMessage as sendMessageCommand } from '$lib/tauri/commands';
+import { listen } from '@tauri-apps/api/event';
+import { sendMessageStream as sendMessageCommand } from '$lib/tauri/commands';
 
 export interface Exchange {
   id: number;
   question: string;
   answer: string;
   isPending?: boolean;
+}
+
+interface AssistantStreamChunkPayload {
+  request_id: number;
+  chunk: string;
 }
 
 function createChatStore() {
@@ -40,8 +46,30 @@ function createChatStore() {
       isLoading.set(pendingRequestCount > 0);
       error.set(null);
 
+      let unlisten: (() => void) | null = null;
+
       try {
-        const response = await sendMessageCommand(trimmedMessage);
+        unlisten = await listen<AssistantStreamChunkPayload>(
+          'assistant-stream-chunk',
+          (event) => {
+            if (event.payload.request_id !== newExchange.id) {
+              return;
+            }
+
+            exchanges.update((items) =>
+              items.map((item) =>
+                item.id === newExchange.id
+                  ? {
+                      ...item,
+                      answer: `${item.answer}${event.payload.chunk}`
+                    }
+                  : item
+              )
+            );
+          }
+        );
+
+        const response = await sendMessageCommand(trimmedMessage, newExchange.id);
 
         exchanges.update(items =>
           items.map(item =>
@@ -70,6 +98,7 @@ function createChatStore() {
           )
         );
       } finally {
+        unlisten?.();
         pendingRequestCount = Math.max(0, pendingRequestCount - 1);
         isLoading.set(pendingRequestCount > 0);
       }

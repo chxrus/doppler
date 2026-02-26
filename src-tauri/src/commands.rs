@@ -3,11 +3,18 @@ use crate::gemini;
 use crate::ollama;
 use crate::storage;
 use crate::stt;
+use serde::Serialize;
 use std::sync::Mutex;
-use tauri::{Emitter, Manager};
+use tauri::{Emitter, Manager, WebviewWindow};
 
 const API_KEY_STORAGE_KEY: &str = "gemini_api_key";
 static LAST_RECORDED_AUDIO: Mutex<Option<audio::RecordedAudio>> = Mutex::new(None);
+
+#[derive(Debug, Clone, Serialize)]
+struct AssistantStreamChunk {
+    request_id: u32,
+    chunk: String,
+}
 
 #[tauri::command]
 pub async fn save_api_key(api_key: String) -> Result<(), String> {
@@ -75,6 +82,70 @@ pub async fn send_message(message: String) -> Result<String, String> {
             Some(&settings.ollama_model),
             message,
             Some(settings.gemini_temperature),
+        )
+        .await
+        .map_err(|e| format!("Failed to send message: {e}")),
+        other => Err(format!("Unsupported text provider: {other}")),
+    }
+}
+
+#[tauri::command]
+pub async fn send_message_stream(
+    window: WebviewWindow,
+    message: String,
+    request_id: u32,
+) -> Result<String, String> {
+    let message = message.trim();
+
+    if message.is_empty() {
+        return Err("Message cannot be empty".to_string());
+    }
+
+    let settings =
+        storage::load_settings().map_err(|error| format!("Failed to load settings: {error}"))?;
+
+    match settings.text_provider.trim().to_lowercase().as_str() {
+        "gemini" => {
+            let api_key =
+                storage::get_from_keychain(API_KEY_STORAGE_KEY).map_err(|error| match error {
+                    storage::StorageError::KeyNotFound => {
+                        "API key not found. Please set it in settings.".to_string()
+                    }
+                    _ => format!("Failed to retrieve API key: {error}"),
+                })?;
+
+            gemini::send_message_stream(
+                &api_key,
+                message,
+                Some(&settings.gemini_model),
+                Some(settings.gemini_temperature),
+                |chunk| {
+                    let _ = window.emit(
+                        "assistant-stream-chunk",
+                        AssistantStreamChunk {
+                            request_id,
+                            chunk: chunk.to_string(),
+                        },
+                    );
+                },
+            )
+            .await
+            .map_err(|e| format!("Failed to send message: {e}"))
+        }
+        "ollama" => ollama::send_message_stream(
+            Some(&settings.ollama_base_url),
+            Some(&settings.ollama_model),
+            message,
+            Some(settings.gemini_temperature),
+            |chunk| {
+                let _ = window.emit(
+                    "assistant-stream-chunk",
+                    AssistantStreamChunk {
+                        request_id,
+                        chunk: chunk.to_string(),
+                    },
+                );
+            },
         )
         .await
         .map_err(|e| format!("Failed to send message: {e}")),
