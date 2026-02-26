@@ -445,7 +445,7 @@
 </script>
 
 <div class="h-full flex flex-col gap-2 text-slate-100">
-  <div class="settings-select-fix flex-1 min-h-0 rounded-2xl backdrop-blur-xl p-2 flex flex-col gap-2 select-none"
+  <div class="settings-select-fix flex-1 min-h-0 rounded-2xl border backdrop-blur-xl p-2 flex flex-col gap-2 select-none"
     style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgb(var(--doppler-surface-rgb, 15 23 42) / var(--doppler-surface-alpha, 0.55));">
     <!-- Tabs Navigation -->
     <div class="pb-1">
@@ -468,7 +468,7 @@
           </label>
           <select
             id="theme"
-            class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
+            class="w-full rounded-xl doppler-control doppler-select px-3 py-2 text-sm"
             bind:value={$settingsStore.theme}
             onchange={handleThemeChange}
           >
@@ -483,7 +483,7 @@
           </label>
           <select
             id="recording-source"
-            class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
+            class="w-full rounded-xl doppler-control doppler-select px-3 py-2 text-sm"
             bind:value={$settingsStore.recording_source}
             onchange={handleRecordingSourceChange}
           >
@@ -498,7 +498,7 @@
           </label>
           <select
             id="recording-device"
-            class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
+            class="w-full rounded-xl doppler-control doppler-select px-3 py-2 text-sm"
             bind:value={$settingsStore.recording_input_device}
             onchange={() => settingsStore.updateField('recording_input_device', $settingsStore.recording_input_device)}
           >
@@ -552,7 +552,7 @@
           </label>
           <select
             id="text-provider"
-            class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
+            class="w-full rounded-xl doppler-control doppler-select px-3 py-2 text-sm"
             bind:value={$settingsStore.text_provider}
             onchange={handleTextProviderChange}
           >
@@ -567,7 +567,7 @@
           </label>
           <select
             id="stt-provider"
-            class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
+            class="w-full rounded-xl doppler-control doppler-select px-3 py-2 text-sm"
             bind:value={$settingsStore.stt_provider}
             onchange={handleSttProviderChange}
           >
@@ -620,7 +620,7 @@
             </label>
             <select
               id="gemini-model"
-              class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
+              class="w-full rounded-xl doppler-control doppler-select px-3 py-2 text-sm"
               bind:value={$settingsStore.gemini_model}
               onchange={() => settingsStore.updateField('gemini_model', $settingsStore.gemini_model)}
             >
@@ -696,7 +696,7 @@
             </label>
             <select
               id="whisper-device"
-              class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
+              class="w-full rounded-xl doppler-control doppler-select px-3 py-2 text-sm"
               bind:value={$settingsStore.whisper_device}
               onchange={() => updateWhisperDevice($settingsStore.whisper_device)}
             >
@@ -839,7 +839,7 @@
               <div class="flex-1">
                 <select
                   id="lmstudio-model"
-                  class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
+                  class="w-full rounded-xl doppler-control doppler-select px-3 py-2 text-sm"
                   bind:value={$settingsStore.lmstudio_model}
                   onchange={() => settingsStore.updateField('lmstudio_model', $settingsStore.lmstudio_model)}
                 >
@@ -1237,13 +1237,10 @@
   .settings-select-fix :global(select) {
     user-select: text;
     -webkit-user-select: text;
-    border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65));
-    background: rgb(var(--doppler-control-rgb, 15 23 42) / var(--doppler-control-alpha, 0.62));
-    color: #e2e8f0;
   }
 
   .settings-select-fix :global(option) {
-    background: #0f172a;
-    color: #e2e8f0;
+    background: rgb(var(--doppler-control-rgb, 15 23 42));
+    color: rgb(var(--doppler-text-rgb, 226 232 240));
   }
 </style>
