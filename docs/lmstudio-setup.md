@@ -27,8 +27,9 @@ Download and install LM Studio:
 ## 3. Start Local Server
 
 1. Open the `Local Server` tab in LM Studio.
-2. Start the server.
-3. Keep it running while you use Doppler.
+2. Disable authorization/authentication for the local server.
+3. Start the server.
+4. Keep it running while you use Doppler.
 
 By default it listens on:
 
@@ -68,6 +69,7 @@ curl http://localhost:1234/v1/chat/completions \
   - Start Local Server in LM Studio.
 - Empty model list in Doppler
   - Confirm model is loaded in LM Studio and server is running.
+  - Ensure Local Server authorization/authentication is disabled.
   - Verify Base URL is correct, then refresh models.
 - HTTP 404 on requests
   - Ensure Base URL includes `/v1` (for example `http://localhost:1234/v1`).

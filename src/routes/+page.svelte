@@ -5,7 +5,7 @@
   import SettingsView from '$lib/components/SettingsView.svelte';
   import { settingsStore } from '$lib/stores/settingsStore';
   import { applyTheme } from '$lib/utils/theme';
-  import { setWindowAlwaysOnTop, setWindowClickThrough } from '$lib/tauri/commands';
+  import { setScreenCaptureProtection, setWindowAlwaysOnTop, setWindowClickThrough } from '$lib/tauri/commands';
 
   let isSettingsOpen = $state(false);
   let isClickThroughEnabled = $state(false);
@@ -49,6 +49,13 @@
       isClickThroughEnabled = settings.click_through;
     } catch (error) {
       console.warn('Failed to restore click-through setting:', error);
+    }
+
+    // Apply capture visibility
+    try {
+      await setScreenCaptureProtection(settings.screen_capture_protection);
+    } catch (error) {
+      console.warn('Failed to restore capture visibility setting:', error);
     }
   }
 

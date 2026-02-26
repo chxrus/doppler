@@ -65,6 +65,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 function createSettingsStore() {
   const { subscribe, set, update } = writable<AppSettings>(DEFAULT_SETTINGS);
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let latestSettings: AppSettings = DEFAULT_SETTINGS;
 
   return {
     subscribe,
@@ -82,9 +83,11 @@ function createSettingsStore() {
           typeof merged.whisper_threads === 'number' && merged.whisper_threads > 0
             ? merged.whisper_threads
             : null;
+        latestSettings = merged;
         set(merged);
       } catch (error) {
         console.warn('Failed to load settings, using defaults:', error);
+        latestSettings = DEFAULT_SETTINGS;
         set(DEFAULT_SETTINGS);
       }
     },
@@ -92,6 +95,7 @@ function createSettingsStore() {
     async updateSettings(settings: AppSettings): Promise<void> {
       try {
         await invoke('update_settings', { settings });
+        latestSettings = settings;
         set(settings);
       } catch (error) {
         console.error('Failed to update settings:', error);
@@ -106,15 +110,22 @@ function createSettingsStore() {
     ): void {
       update(current => {
         const updated = { ...current, [field]: value };
+        latestSettings = updated;
 
         if (debounce) {
           if (debounceTimer != null) {
             clearTimeout(debounceTimer);
           }
           debounceTimer = setTimeout(() => {
-            void invoke('update_settings', { settings: updated });
+            const settingsToSave = latestSettings;
+            debounceTimer = null;
+            void invoke('update_settings', { settings: settingsToSave });
           }, 500);
         } else {
+          if (debounceTimer != null) {
+            clearTimeout(debounceTimer);
+            debounceTimer = null;
+          }
           void invoke('update_settings', { settings: updated });
         }
 

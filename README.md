@@ -152,6 +152,7 @@ Setup instructions for local Ollama are here:
 Setup instructions for local LM Studio are here:
 
 - [docs/lmstudio-setup.md](docs/lmstudio-setup.md)
+- Important: in LM Studio Local Server, disable authorization/authentication, otherwise model detection will fail.
 
 ### Text Chat
 
