@@ -11,8 +11,8 @@
   type="button"
   class="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm font-medium tracking-tight shadow-sm backdrop-blur transition disabled:opacity-50 disabled:cursor-not-allowed
     {speaking
-      ? 'border-rose-400/80 bg-rose-200/85 text-rose-900 hover:bg-rose-200'
-      : 'border-white/80 bg-white/78 text-slate-700 hover:bg-white'}"
+      ? 'border-rose-300/65 bg-rose-500/25 text-rose-100 hover:bg-rose-500/35'
+      : 'border-white/15 bg-slate-900/45 text-slate-100 hover:bg-slate-900/75'}"
   {onclick}
 >
   {#if speaking}

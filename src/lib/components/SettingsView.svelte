@@ -67,6 +67,8 @@
     'https://github.com/chxrus/doppler/blob/main/docs/ollama-setup.md';
   const WHISPER_SETUP_DOC_URL =
     'https://github.com/chxrus/doppler/blob/main/docs/whisper-setup.md';
+  const WHISPER_MODELS_URL =
+    'https://huggingface.co/ggerganov/whisper.cpp/tree/main';
   const geminiModelOptions = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
   const DEFAULT_INPUT_DEVICE = 'Default input';
   const isGeminiTextProvider = $derived($settingsStore.text_provider === 'gemini');
@@ -302,10 +304,14 @@
     const surface = Math.max(0.04, Math.min(0.62, clamped * 0.58));
     const surfaceStrong = Math.max(0.05, Math.min(0.8, clamped * 0.72));
     const border = Math.max(0.12, Math.min(0.75, clamped * 0.78));
+    const control = Math.max(0.16, Math.min(0.82, clamped * 0.66));
+    const controlStrong = Math.max(0.24, Math.min(0.9, clamped * 0.8));
     document.documentElement.style.setProperty('--doppler-window-alpha', clamped.toString());
     document.documentElement.style.setProperty('--doppler-surface-alpha', surface.toString());
     document.documentElement.style.setProperty('--doppler-surface-strong-alpha', surfaceStrong.toString());
     document.documentElement.style.setProperty('--doppler-border-alpha', border.toString());
+    document.documentElement.style.setProperty('--doppler-control-alpha', control.toString());
+    document.documentElement.style.setProperty('--doppler-control-strong-alpha', controlStrong.toString());
     settingsStore.updateField('opacity', value, true);
   }
 
@@ -363,14 +369,14 @@
   });
 </script>
 
-<div class="h-full flex flex-col gap-2 text-slate-900">
+<div class="h-full flex flex-col gap-2 text-slate-100">
   <div class="settings-select-fix flex-1 min-h-0 rounded-2xl backdrop-blur-xl p-2 flex flex-col gap-2 select-none"
-    style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-alpha, 0.5));">
+    style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-surface-alpha, 0.55));">
     <!-- Tabs Navigation -->
     <div class="pb-1">
     <div>
-      <h2 class="text-base font-semibold tracking-tight text-slate-900">Settings</h2>
-      <p class="text-xs text-slate-600">Overlay and interaction preferences</p>
+      <h2 class="text-base font-semibold tracking-tight text-slate-100">Settings</h2>
+      <p class="text-xs text-slate-300">Overlay and interaction preferences</p>
     </div>
     </div>
     <Tabs {tabs} bind:activeTab />
@@ -380,14 +386,14 @@
     {#if activeTab === 'general'}
       <!-- General Tab (Placeholder) -->
       <section class="space-y-3 p-1">
-        <h3 class="text-sm font-semibold text-slate-800">General Settings</h3>
+        <h3 class="text-sm font-semibold text-slate-100">General Settings</h3>
         <div class="space-y-2">
-          <label class="block text-xs font-medium text-slate-600" for="recording-source">
+          <label class="block text-xs font-medium text-slate-300" for="recording-source">
             Recording Source
           </label>
           <select
             id="recording-source"
-            class="w-full rounded-xl border border-white/75 bg-white px-3 py-2 text-sm text-slate-900"
+            class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
             bind:value={$settingsStore.recording_source}
             onchange={handleRecordingSourceChange}
           >
@@ -397,12 +403,12 @@
         </div>
 
         <div class="space-y-2">
-          <label class="block text-xs font-medium text-slate-600" for="recording-device">
+          <label class="block text-xs font-medium text-slate-300" for="recording-device">
             Recording Device
           </label>
           <select
             id="recording-device"
-            class="w-full rounded-xl border border-white/75 bg-white px-3 py-2 text-sm text-slate-900"
+            class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
             bind:value={$settingsStore.recording_input_device}
             onchange={() => settingsStore.updateField('recording_input_device', $settingsStore.recording_input_device)}
           >
@@ -413,12 +419,12 @@
             {/each}
           </select>
           {#if !isRecordingDevicesLoading && filteredRecordingDevices.length === 0}
-            <p class="text-xs text-slate-500">No input devices detected.</p>
+            <p class="text-xs text-slate-400">No input devices detected.</p>
           {/if}
         </div>
 
         <div class="space-y-2">
-          <label class="block text-xs font-medium text-slate-600" for="tts-rate">
+          <label class="block text-xs font-medium text-slate-300" for="tts-rate">
             Speech Speed: {$settingsStore.tts_rate.toFixed(2)}x
           </label>
           <Slider
@@ -434,14 +440,14 @@
     {:else if activeTab === 'ai'}
       <!-- AI Tab -->
       <section class="space-y-3 p-1">
-        <h3 class="text-sm font-semibold text-slate-800">AI Providers</h3>
+        <h3 class="text-sm font-semibold text-slate-100">AI Providers</h3>
         <div class="space-y-2">
-          <label class="block text-xs font-medium text-slate-600" for="text-provider">
+          <label class="block text-xs font-medium text-slate-300" for="text-provider">
             Text API Provider
           </label>
           <select
             id="text-provider"
-            class="w-full rounded-xl border border-white/75 bg-white px-3 py-2 text-sm text-slate-900"
+            class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
             bind:value={$settingsStore.text_provider}
             onchange={handleTextProviderChange}
           >
@@ -451,12 +457,12 @@
           </select>
         </div>
         <div class="space-y-2">
-          <label class="block text-xs font-medium text-slate-600" for="stt-provider">
+          <label class="block text-xs font-medium text-slate-300" for="stt-provider">
             Speech-to-Text Provider
           </label>
           <select
             id="stt-provider"
-            class="w-full rounded-xl border border-white/75 bg-white px-3 py-2 text-sm text-slate-900"
+            class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
             bind:value={$settingsStore.stt_provider}
             onchange={handleSttProviderChange}
           >
@@ -465,7 +471,7 @@
             {/each}
           </select>
           {#if !whisperSupported}
-            <p class="text-xs text-slate-600">
+            <p class="text-xs text-slate-300">
               Whisper is disabled in this app build. Rebuild backend with Cargo feature
               <span class="font-semibold">local-whisper</span>.
             </p>
@@ -473,9 +479,9 @@
         </div>
 
         {#if isGeminiTextProvider || isGeminiSttProvider}
-          <div class="space-y-2 border-t border-slate-200/75 pt-2">
-            <div class="text-xs font-semibold uppercase tracking-wide text-slate-700">Gemini</div>
-            <label for="api-key" class="block text-xs font-medium text-slate-600">
+          <div class="space-y-2 border-t border-slate-600/45 pt-2">
+            <div class="text-xs font-semibold uppercase tracking-wide text-slate-200">Gemini</div>
+            <label for="api-key" class="block text-xs font-medium text-slate-300">
               API Key
             </label>
             <Input
@@ -502,14 +508,14 @@
         {/if}
 
         {#if isGeminiTextProvider}
-          <div class="space-y-2 border-t border-slate-200/75 pt-2">
-            <div class="text-xs font-semibold uppercase tracking-wide text-slate-700">Gemini Text</div>
-            <label class="block text-xs font-medium text-slate-600" for="gemini-model">
+          <div class="space-y-2 border-t border-slate-600/45 pt-2">
+            <div class="text-xs font-semibold uppercase tracking-wide text-slate-200">Gemini Text</div>
+            <label class="block text-xs font-medium text-slate-300" for="gemini-model">
               Model
             </label>
             <select
               id="gemini-model"
-              class="w-full rounded-xl border border-white/75 bg-white px-3 py-2 text-sm text-slate-900"
+              class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
               bind:value={$settingsStore.gemini_model}
               onchange={() => settingsStore.updateField('gemini_model', $settingsStore.gemini_model)}
             >
@@ -517,7 +523,7 @@
                 <option value={model}>{model}</option>
               {/each}
             </select>
-            <label class="block text-xs font-medium text-slate-600" for="gemini-temperature">
+            <label class="block text-xs font-medium text-slate-300" for="gemini-temperature">
               Temperature: {$settingsStore.gemini_temperature.toFixed(2)}
             </label>
             <Slider
@@ -531,12 +537,12 @@
         {/if}
 
         {#if isWhisperSttProvider}
-          <div class="space-y-2 border-t border-slate-200/75 pt-2">
+          <div class="space-y-2 border-t border-slate-600/45 pt-2">
             <div class="flex items-center justify-between gap-2">
-              <div class="text-xs font-semibold uppercase tracking-wide text-slate-700">Whisper</div>
+              <div class="text-xs font-semibold uppercase tracking-wide text-slate-200">Whisper</div>
               <button
                 type="button"
-                class="h-6 w-6 shrink-0 rounded-md border border-white/80 bg-white/78 text-slate-700 text-xs font-semibold transition hover:bg-white"
+                class="h-6 w-6 shrink-0 rounded-md border border-white/15 bg-slate-900/55 text-slate-200 text-xs font-semibold transition hover:bg-slate-900/80"
                 onclick={() => {
                   void openWhisperSetupDocs();
                 }}
@@ -546,22 +552,18 @@
                 ?
               </button>
             </div>
-            <p class="text-xs text-slate-600">
-              Download a GGML model and configure local transcription following the GitHub guide:
+            <p class="text-xs text-slate-300">
+              Download Whisper models:
               <a
-                href={WHISPER_SETUP_DOC_URL}
-                class="underline decoration-slate-400 underline-offset-2 hover:text-slate-800"
+                href={WHISPER_MODELS_URL}
+                class="underline decoration-slate-400 underline-offset-2 hover:text-slate-100"
                 target="_blank"
                 rel="noreferrer"
-                onclick={(event) => {
-                  event.preventDefault();
-                  void openWhisperSetupDocs();
-                }}
               >
-                whisper.cpp quick start
+                here
               </a>
             </p>
-            <label for="whisper-model-path" class="block text-xs font-medium text-slate-600">
+            <label for="whisper-model-path" class="block text-xs font-medium text-slate-300">
               Model path
             </label>
             <Input
@@ -575,7 +577,7 @@
                 Set model path for Whisper. Save is allowed; transcription will fail until path is set.
               </p>
             {/if}
-            <label for="whisper-language" class="block text-xs font-medium text-slate-600">
+            <label for="whisper-language" class="block text-xs font-medium text-slate-300">
               Language (optional)
             </label>
             <Input
@@ -584,7 +586,7 @@
               placeholder="auto (empty), en, ru..."
               oninput={() => updateWhisperLanguage($settingsStore.whisper_language)}
             />
-            <label for="whisper-threads" class="block text-xs font-medium text-slate-600">
+            <label for="whisper-threads" class="block text-xs font-medium text-slate-300">
               Threads (optional)
             </label>
             <Input
@@ -597,12 +599,12 @@
         {/if}
 
         {#if $settingsStore.text_provider === 'ollama'}
-          <div class="space-y-2 border-t border-slate-200/75 pt-2">
+          <div class="space-y-2 border-t border-slate-600/45 pt-2">
             <div class="flex items-center justify-between gap-2">
-              <div class="text-xs font-semibold uppercase tracking-wide text-slate-700">Ollama</div>
+              <div class="text-xs font-semibold uppercase tracking-wide text-slate-200">Ollama</div>
               <button
                 type="button"
-                class="h-6 w-6 shrink-0 rounded-md border border-white/80 bg-white/78 text-slate-700 text-xs font-semibold transition hover:bg-white"
+                class="h-6 w-6 shrink-0 rounded-md border border-white/15 bg-slate-900/55 text-slate-200 text-xs font-semibold transition hover:bg-slate-900/80"
                 onclick={() => {
                   void openOllamaSetupDocs();
                 }}
@@ -612,10 +614,10 @@
                 ?
               </button>
             </div>
-            <p class="text-xs text-slate-600">
+            <p class="text-xs text-slate-300">
               Use a running Ollama server (usually local) and select an installed model tag.
             </p>
-            <label class="block text-xs font-medium text-slate-600" for="ollama-base-url">
+            <label class="block text-xs font-medium text-slate-300" for="ollama-base-url">
               Base URL
             </label>
                 <Input
@@ -624,7 +626,7 @@
                   placeholder="http://localhost:11434"
                   oninput={() => settingsStore.updateField('ollama_base_url', $settingsStore.ollama_base_url)}
                 />
-            <label class="block text-xs font-medium text-slate-600" for="ollama-model">
+            <label class="block text-xs font-medium text-slate-300" for="ollama-model">
               Model
             </label>
             <div class="flex items-center gap-2">
@@ -639,7 +641,7 @@
               </div>
               <button
                 type="button"
-                class="h-10 w-10 shrink-0 rounded-xl border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                class="h-10 w-10 shrink-0 rounded-xl border border-white/15 bg-slate-900/55 text-slate-200 transition hover:bg-slate-900/80 disabled:opacity-50 disabled:cursor-not-allowed"
                 onclick={() => {
                   void detectOllamaModels();
                 }}
@@ -666,12 +668,12 @@
               {/each}
             </datalist>
             {#if ollamaModels.length > 0}
-              <p class="text-xs text-slate-600">Found models: {ollamaModels.length}</p>
+              <p class="text-xs text-slate-300">Found models: {ollamaModels.length}</p>
             {/if}
             {#if ollamaModelsErrorMessage !== null}
               <p class="text-xs text-rose-700">{ollamaModelsErrorMessage}</p>
             {/if}
-            <label class="block text-xs font-medium text-slate-600" for="ollama-temperature">
+            <label class="block text-xs font-medium text-slate-300" for="ollama-temperature">
               Temperature: {$settingsStore.gemini_temperature.toFixed(2)}
             </label>
             <Slider
@@ -689,11 +691,11 @@
     {:else if activeTab === 'overlay'}
       <!-- Overlay Tab -->
       <section class="space-y-3 p-1">
-        <h3 class="text-sm font-semibold text-slate-800">Overlay Settings</h3>
+        <h3 class="text-sm font-semibold text-slate-100">Overlay Settings</h3>
         
         <!-- Opacity Slider -->
         <div class="space-y-2">
-          <label for="opacity" class="block text-xs font-medium text-slate-600">
+          <label for="opacity" class="block text-xs font-medium text-slate-300">
             Opacity: {Math.round($settingsStore.opacity * 100)}%
           </label>
           <Slider
@@ -718,7 +720,7 @@
             onchange={() => applyClickThrough($settingsStore.click_through)} 
           />
           {#if $settingsStore.click_through}
-            <p class="rounded-lg border border-amber-300/70 bg-amber-50/90 px-2.5 py-2 text-xs font-medium text-amber-900">
+            <p class="rounded-lg border border-amber-300/65 bg-amber-500/18 px-2.5 py-2 text-xs font-medium text-amber-100">
               Click-through is on. Turn off with <span class="font-semibold">{formatHotkeyLabel($settingsStore.hotkey_click_through)}</span>.
             </p>
           {/if}
@@ -729,7 +731,7 @@
       <!-- Hotkeys Tab -->
       <section class="space-y-3 p-1">
         <div class="flex items-center justify-between gap-2">
-          <h3 class="text-sm font-semibold text-slate-800">Hotkeys</h3>
+          <h3 class="text-sm font-semibold text-slate-100">Hotkeys</h3>
           <Button variant="secondary" size="sm" onclick={resetAllHotkeys}>
             Reset all
           </Button>
@@ -737,14 +739,14 @@
         
         <div class="space-y-2.5">
           <div class="space-y-1.5">
-            <div class="text-xs font-medium text-slate-600">
+            <div class="text-xs font-medium text-slate-300">
               Toggle Settings
             </div>
             <div class="flex items-center gap-2">
-              <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
+              <div class="flex-1 px-2.5 py-1.5 border border-white/15 rounded-lg bg-slate-900/55">
                 <div class="flex gap-1 flex-wrap">
                   {#each formatHotkey($settingsStore.hotkey_toggle) as key}
-                    <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
+                    <span class="px-1.5 py-0.5 bg-slate-900/65 text-slate-200 rounded-md text-xs font-medium border border-slate-600/45">
                       {key}
                     </span>
                   {/each}
@@ -755,7 +757,7 @@
               </Button>
               <button
                 type="button"
-                class="h-9 w-9 shrink-0 rounded-lg border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white"
+                class="h-9 w-9 shrink-0 rounded-lg border border-white/15 bg-slate-900/55 text-slate-200 transition hover:bg-slate-900/80"
                 onclick={() => resetHotkey('toggle')}
                 aria-label="Reset toggle settings hotkey"
                 title="Reset"
@@ -768,14 +770,14 @@
           </div>
 
           <div class="space-y-1.5">
-            <div class="text-xs font-medium text-slate-600">
+            <div class="text-xs font-medium text-slate-300">
               Start/Stop Recording
             </div>
             <div class="flex items-center gap-2">
-              <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
+              <div class="flex-1 px-2.5 py-1.5 border border-white/15 rounded-lg bg-slate-900/55">
                 <div class="flex gap-1 flex-wrap">
                   {#each formatHotkey($settingsStore.hotkey_record) as key}
-                    <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
+                    <span class="px-1.5 py-0.5 bg-slate-900/65 text-slate-200 rounded-md text-xs font-medium border border-slate-600/45">
                       {key}
                     </span>
                   {/each}
@@ -786,7 +788,7 @@
               </Button>
               <button
                 type="button"
-                class="h-9 w-9 shrink-0 rounded-lg border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white"
+                class="h-9 w-9 shrink-0 rounded-lg border border-white/15 bg-slate-900/55 text-slate-200 transition hover:bg-slate-900/80"
                 onclick={() => resetHotkey('record')}
                 aria-label="Reset start stop recording hotkey"
                 title="Reset"
@@ -799,14 +801,14 @@
           </div>
 
           <div class="space-y-1.5">
-            <div class="text-xs font-medium text-slate-600">
+            <div class="text-xs font-medium text-slate-300">
               Previous Exchange
             </div>
             <div class="flex items-center gap-2">
-              <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
+              <div class="flex-1 px-2.5 py-1.5 border border-white/15 rounded-lg bg-slate-900/55">
                 <div class="flex gap-1 flex-wrap">
                   {#each formatHotkey($settingsStore.hotkey_previous) as key}
-                    <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
+                    <span class="px-1.5 py-0.5 bg-slate-900/65 text-slate-200 rounded-md text-xs font-medium border border-slate-600/45">
                       {key}
                     </span>
                   {/each}
@@ -817,7 +819,7 @@
               </Button>
               <button
                 type="button"
-                class="h-9 w-9 shrink-0 rounded-lg border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white"
+                class="h-9 w-9 shrink-0 rounded-lg border border-white/15 bg-slate-900/55 text-slate-200 transition hover:bg-slate-900/80"
                 onclick={() => resetHotkey('previous')}
                 aria-label="Reset previous exchange hotkey"
                 title="Reset"
@@ -830,14 +832,14 @@
           </div>
 
           <div class="space-y-1.5">
-            <div class="text-xs font-medium text-slate-600">
+            <div class="text-xs font-medium text-slate-300">
               Next Exchange
             </div>
             <div class="flex items-center gap-2">
-              <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
+              <div class="flex-1 px-2.5 py-1.5 border border-white/15 rounded-lg bg-slate-900/55">
                 <div class="flex gap-1 flex-wrap">
                   {#each formatHotkey($settingsStore.hotkey_next) as key}
-                    <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
+                    <span class="px-1.5 py-0.5 bg-slate-900/65 text-slate-200 rounded-md text-xs font-medium border border-slate-600/45">
                       {key}
                     </span>
                   {/each}
@@ -848,7 +850,7 @@
               </Button>
               <button
                 type="button"
-                class="h-9 w-9 shrink-0 rounded-lg border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white"
+                class="h-9 w-9 shrink-0 rounded-lg border border-white/15 bg-slate-900/55 text-slate-200 transition hover:bg-slate-900/80"
                 onclick={() => resetHotkey('next')}
                 aria-label="Reset next exchange hotkey"
                 title="Reset"
@@ -861,14 +863,14 @@
           </div>
 
           <div class="space-y-1.5">
-            <div class="text-xs font-medium text-slate-600">
+            <div class="text-xs font-medium text-slate-300">
               Send Question
             </div>
             <div class="flex items-center gap-2">
-              <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
+              <div class="flex-1 px-2.5 py-1.5 border border-white/15 rounded-lg bg-slate-900/55">
                 <div class="flex gap-1 flex-wrap">
                   {#each formatHotkey($settingsStore.hotkey_send) as key}
-                    <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
+                    <span class="px-1.5 py-0.5 bg-slate-900/65 text-slate-200 rounded-md text-xs font-medium border border-slate-600/45">
                       {key}
                     </span>
                   {/each}
@@ -879,7 +881,7 @@
               </Button>
               <button
                 type="button"
-                class="h-9 w-9 shrink-0 rounded-lg border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white"
+                class="h-9 w-9 shrink-0 rounded-lg border border-white/15 bg-slate-900/55 text-slate-200 transition hover:bg-slate-900/80"
                 onclick={() => resetHotkey('send')}
                 aria-label="Reset send question hotkey"
                 title="Reset"
@@ -892,14 +894,14 @@
           </div>
 
           <div class="space-y-1.5">
-            <div class="text-xs font-medium text-slate-600">
+            <div class="text-xs font-medium text-slate-300">
               Toggle Click-through
             </div>
             <div class="flex items-center gap-2">
-              <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
+              <div class="flex-1 px-2.5 py-1.5 border border-white/15 rounded-lg bg-slate-900/55">
                 <div class="flex gap-1 flex-wrap">
                   {#each formatHotkey($settingsStore.hotkey_click_through) as key}
-                    <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
+                    <span class="px-1.5 py-0.5 bg-slate-900/65 text-slate-200 rounded-md text-xs font-medium border border-slate-600/45">
                       {key}
                     </span>
                   {/each}
@@ -910,7 +912,7 @@
               </Button>
               <button
                 type="button"
-                class="h-9 w-9 shrink-0 rounded-lg border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white"
+                class="h-9 w-9 shrink-0 rounded-lg border border-white/15 bg-slate-900/55 text-slate-200 transition hover:bg-slate-900/80"
                 onclick={() => resetHotkey('clickThrough')}
                 aria-label="Reset click-through hotkey"
                 title="Reset"
@@ -923,14 +925,14 @@
           </div>
 
           <div class="space-y-1.5">
-            <div class="text-xs font-medium text-slate-600">
+            <div class="text-xs font-medium text-slate-300">
               Toggle Capture Visibility
             </div>
             <div class="flex items-center gap-2">
-              <div class="flex-1 px-2.5 py-1.5 border border-white/70 rounded-lg bg-white/70">
+              <div class="flex-1 px-2.5 py-1.5 border border-white/15 rounded-lg bg-slate-900/55">
                 <div class="flex gap-1 flex-wrap">
                   {#each formatHotkey($settingsStore.hotkey_capture_visibility) as key}
-                    <span class="px-1.5 py-0.5 bg-white text-slate-700 rounded-md text-xs font-medium border border-slate-200">
+                    <span class="px-1.5 py-0.5 bg-slate-900/65 text-slate-200 rounded-md text-xs font-medium border border-slate-600/45">
                       {key}
                     </span>
                   {/each}
@@ -941,7 +943,7 @@
               </Button>
               <button
                 type="button"
-                class="h-9 w-9 shrink-0 rounded-lg border border-white/80 bg-white/78 text-slate-700 transition hover:bg-white"
+                class="h-9 w-9 shrink-0 rounded-lg border border-white/15 bg-slate-900/55 text-slate-200 transition hover:bg-slate-900/80"
                 onclick={() => resetHotkey('captureVisibility')}
                 aria-label="Reset capture visibility hotkey"
                 title="Reset"
@@ -959,11 +961,11 @@
   </div>
 
   <div class="rounded-2xl border backdrop-blur-xl p-2.5 md:p-3"
-    style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.7));">
+    style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-surface-strong-alpha, 0.7));">
     <div class="flex items-center gap-2">
       <button
         type="button"
-        class="h-11 w-11 shrink-0 rounded-xl border border-white/70 bg-white/55 text-slate-500/70 cursor-not-allowed"
+        class="h-11 w-11 shrink-0 rounded-xl border border-white/15 bg-slate-900/45 text-slate-400/70 cursor-not-allowed"
         aria-label="Voice input"
         title={`Voice input (${formatHotkeyLabel($settingsStore.hotkey_record)})`}
         data-hotkey={formatHotkeyLabel($settingsStore.hotkey_record)}
@@ -978,7 +980,7 @@
 
       <button
         type="button"
-        class="h-11 w-11 shrink-0 rounded-xl border border-white bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+        class="h-11 w-11 shrink-0 rounded-xl border border-white/15 bg-slate-900/45 text-slate-100 shadow-sm transition hover:bg-slate-900/80"
         onclick={onClose}
         aria-label="Close settings"
         title={`Toggle settings (${formatHotkeyLabel($settingsStore.hotkey_toggle)})`}
@@ -990,9 +992,10 @@
       </button>
       <button
         type="button"
-        class="h-11 flex-1 rounded-xl border text-sm font-semibold transition {$settingsStore.screen_capture_protection
-          ? 'border-emerald-300/80 bg-emerald-50/95 text-emerald-800 hover:bg-emerald-100/90'
-          : 'border-amber-300/80 bg-amber-50/95 text-amber-800 hover:bg-amber-100/90'}"
+        class="h-11 flex-1 rounded-xl border text-sm font-semibold transition text-slate-100"
+        style={$settingsStore.screen_capture_protection
+          ? 'border-color: rgba(var(--doppler-capture-hidden-rgb), 0.82); background: rgba(var(--doppler-capture-hidden-rgb), 0.34); color: rgb(167, 243, 208);'
+          : 'border-color: rgba(var(--doppler-capture-visible-rgb), 0.86); background: rgba(var(--doppler-capture-visible-rgb), 0.26); color: rgb(254, 205, 211);'}
         onclick={toggleCaptureVisibility}
         title={$settingsStore.screen_capture_protection
           ? 'Window is hidden from screen recording (click to make visible)'
@@ -1024,9 +1027,16 @@
 <style>
   .settings-select-fix :global(input),
   .settings-select-fix :global(textarea),
-  .settings-select-fix :global(select),
-  .settings-select-fix :global(option) {
+  .settings-select-fix :global(select) {
     user-select: text;
     -webkit-user-select: text;
+    border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65));
+    background: rgba(15, 23, 42, var(--doppler-control-alpha, 0.62));
+    color: #e2e8f0;
+  }
+
+  .settings-select-fix :global(option) {
+    background: #0f172a;
+    color: #e2e8f0;
   }
 </style>

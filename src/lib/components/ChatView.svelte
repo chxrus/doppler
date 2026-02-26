@@ -314,11 +314,39 @@
     {/if}
 
     <div class="flex-1 min-h-0 rounded-2xl border backdrop-blur-xl p-2 flex flex-col gap-2"
-      style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-alpha, 0.5));">
-      <div class="flex items-center justify-end gap-1.5 select-none">
+      style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-surface-alpha, 0.55));">
+      <div class="flex items-center justify-between gap-2 select-none">
+        <div
+          class="h-9 shrink-0 rounded-lg border px-2.5 text-[11px] font-semibold uppercase tracking-wide flex items-center gap-1.5"
+          style={$settingsStore.screen_capture_protection
+            ? 'border-color: rgba(var(--doppler-capture-hidden-rgb), 0.78); background: rgba(var(--doppler-capture-hidden-rgb), 0.28); color: rgb(167, 243, 208);'
+            : 'border-color: rgba(var(--doppler-capture-visible-rgb), 0.85); background: rgba(var(--doppler-capture-visible-rgb), 0.24); color: rgb(254, 205, 211);'}
+          title={$settingsStore.screen_capture_protection
+            ? 'Window is hidden from screen recording'
+            : 'Window is visible in screen recording'}
+        >
+          {#if $settingsStore.screen_capture_protection}
+            <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 2l20 20" stroke-linecap="round" />
+              <path d="M10.6 10.6A3 3 0 0012 15a3 3 0 002.4-4.8" stroke-linecap="round" />
+              <path d="M9.4 5.1A10.7 10.7 0 0121 12a10.7 10.7 0 01-4 5.6" stroke-linecap="round" />
+              <path d="M6.1 6.1A10.8 10.8 0 003 12a10.7 10.7 0 004.8 6.5" stroke-linecap="round" />
+            </svg>
+            Hidden in capture
+          {:else}
+            <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            Visible in capture
+          {/if}
+        </div>
+
+        <div class="flex items-center gap-1.5">
         <button
           type="button"
-          class="h-9 px-2 rounded-lg border border-white/70 bg-white/65 text-xs font-semibold text-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/95"
+          class="h-9 px-2 rounded-lg border text-xs font-semibold text-slate-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
+          style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-control-alpha, 0.62));"
           onclick={() => {
             void clearSession();
           }}
@@ -329,7 +357,8 @@
         </button>
         <button
           type="button"
-          class="h-9 w-9 rounded-lg border border-white/70 bg-white/65 text-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/95"
+          class="h-9 w-9 rounded-lg border text-slate-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
+          style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-control-alpha, 0.62));"
           onclick={goToPreviousExchange}
           disabled={!canGoPrevious}
           aria-label="Previous exchange"
@@ -339,7 +368,7 @@
         >
           ←
         </button>
-        <div class="min-w-16 text-center text-xs font-semibold text-slate-600">
+        <div class="min-w-16 text-center text-xs font-semibold text-slate-300">
           {#if hasExchanges}
             {currentExchangeIndex + 1} / {exchanges.length}
           {:else}
@@ -348,7 +377,8 @@
         </div>
         <button
           type="button"
-          class="h-9 w-9 rounded-lg border border-white/70 bg-white/65 text-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/95"
+          class="h-9 w-9 rounded-lg border text-slate-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
+          style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-control-alpha, 0.62));"
           onclick={goToNextExchange}
           disabled={!canGoNext}
           aria-label="Next exchange"
@@ -358,20 +388,21 @@
         >
           →
         </button>
+        </div>
       </div>
 
       <div class="flex-1 min-h-0 overflow-auto space-y-3">
         {#if currentExchange != null}
           <div class="rounded-2xl border p-3 md:p-4 space-y-2"
-            style="border-color: rgba(186, 230, 253, var(--doppler-border-alpha, 0.7)); background: rgba(224, 242, 254, calc(var(--doppler-surface-strong-alpha, 0.75) + 0.05));">
-            <div class="text-[11px] uppercase tracking-wide font-semibold text-slate-500">Question</div>
-            <p class="text-[1.02rem] leading-relaxed text-slate-900 break-words">{currentExchange.question}</p>
+            style="border-color: rgba(var(--doppler-accent-rgb), 0.55); background: rgba(var(--doppler-accent-rgb), 0.16);">
+            <div class="text-[11px] uppercase tracking-wide font-semibold text-slate-300">Question</div>
+            <p class="text-[1.02rem] leading-relaxed text-slate-100 break-words">{currentExchange.question}</p>
           </div>
 
           <div class="rounded-2xl border p-3 md:p-4 space-y-2"
-            style="border-color: rgba(203, 213, 225, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.78));">
+            style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-surface-strong-alpha, 0.7));">
             <div class="flex items-center justify-between">
-              <div class="text-[11px] uppercase tracking-wide font-semibold text-slate-500">Answer</div>
+              <div class="text-[11px] uppercase tracking-wide font-semibold text-slate-300">Answer</div>
               {#if !currentExchange.isPending}
                 <SpeakButton
                   speaking={speakingExchangeIndex === currentExchangeIndex}
@@ -382,13 +413,13 @@
               {/if}
             </div>
             {#if currentExchange.isPending}
-              <div class="flex items-center gap-2 text-slate-600">
+              <div class="flex items-center gap-2 text-slate-300">
                 <Spinner size="sm" />
                 <span class="text-sm">Generating response...</span>
               </div>
             {:else}
               <div
-                class="markdown-content text-[1.02rem] leading-relaxed text-slate-900 break-words"
+                class="markdown-content text-[1.02rem] leading-relaxed text-slate-100 break-words"
               >
                 {@html renderMarkdown(currentExchange.answer)}
               </div>
@@ -396,19 +427,15 @@
           </div>
         {:else}
           <div class="h-full min-h-[140px] flex items-center justify-center">
-            <p class="text-sm text-slate-600 text-center">No exchanges yet. Ask your first question below.</p>
+            <p class="text-sm text-slate-300 text-center">No exchanges yet. Ask your first question below.</p>
           </div>
         {/if}
       </div>
     </div>
 
     <div
-      class="rounded-2xl border backdrop-blur-xl p-2.5 md:p-3 transition-all {$settingsStore.screen_capture_protection
-        ? ''
-        : 'shadow-[inset_0_0_0_1px_rgba(245,158,11,0.4)]'}"
-      style={$settingsStore.screen_capture_protection
-        ? 'border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.7)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.7));'
-        : 'border-color: rgba(245, 158, 11, 0.8); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.7));'}
+      class="rounded-2xl border backdrop-blur-xl p-2.5 md:p-3 transition-all"
+      style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-surface-strong-alpha, 0.7));"
       title={$settingsStore.screen_capture_protection
         ? 'Window is hidden from capture'
         : 'Warning: window is visible in capture'}
@@ -417,8 +444,8 @@
         <button
           type="button"
           class="h-11 w-11 shrink-0 rounded-xl border text-lg transition {isRecording
-            ? 'border-rose-400/80 bg-rose-500/18 text-rose-700 shadow-[0_0_0_1px_rgba(244,63,94,0.18)]'
-            : 'border-white/85 bg-white text-slate-700 hover:bg-slate-50'}"
+            ? 'border-rose-300/70 bg-rose-500/28 text-rose-100 shadow-[0_0_0_1px_rgba(244,63,94,0.25)]'
+            : 'border-white/15 bg-slate-900/45 text-slate-100 hover:bg-slate-900/75'}"
           onclick={() => {
             void toggleRecording();
           }}
@@ -436,7 +463,7 @@
 
         <button
           type="button"
-          class="h-11 w-11 shrink-0 rounded-xl border border-white bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+          class="h-11 w-11 shrink-0 rounded-xl border border-white/15 bg-slate-900/45 text-slate-100 shadow-sm transition hover:bg-slate-900/75"
           onclick={() => onToggleSettings?.()}
           aria-label={isSettingsOpen ? 'Close settings' : 'Open settings'}
           title={isSettingsOpen ? 'Close settings (Esc)' : `Open settings (${formatHotkeyLabel($settingsStore.hotkey_toggle)})`}
@@ -464,15 +491,15 @@
           oninput={handleInput}
           onkeydown={handleInputKeyDown}
           placeholder="Ask a question..."
-          class="select-text flex-1 min-w-0 h-11 rounded-xl border px-3.5 text-[1rem] text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-300/80"
-          style="border-color: rgba(255, 255, 255, var(--doppler-border-alpha, 0.75)); background: rgba(255, 255, 255, var(--doppler-surface-strong-alpha, 0.78));"
+          class="select-text flex-1 min-w-0 h-11 rounded-xl border px-3.5 text-[1rem] text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-300/70"
+          style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-control-alpha, 0.62));"
           title={`Type question and press ${formatHotkeyLabel($settingsStore.hotkey_send)} to send`}
           data-hotkey={formatHotkeyLabel($settingsStore.hotkey_send)}
         />
 
         <button
           type="button"
-          class="h-11 px-4 rounded-xl border border-sky-400/45 bg-sky-500/85 text-white text-sm font-semibold transition disabled:opacity-45 disabled:cursor-not-allowed hover:bg-sky-500"
+          class="h-11 px-4 rounded-xl border border-teal-300/55 bg-teal-500/85 text-white text-sm font-semibold transition disabled:opacity-45 disabled:cursor-not-allowed hover:bg-teal-400"
           onclick={sendMessage}
           disabled={input.trim() === '' || isLoading}
           title={`Send question (${formatHotkeyLabel($settingsStore.hotkey_send)})`}
@@ -514,8 +541,8 @@
   .markdown-content :global(blockquote) {
     margin: 0.5rem 0;
     padding: 0.4rem 0.7rem;
-    border-left: 3px solid rgba(148, 163, 184, 0.8);
-    background: rgba(241, 245, 249, 0.65);
+    border-left: 3px solid rgba(148, 163, 184, 0.75);
+    background: rgba(15, 23, 42, 0.58);
     border-radius: 0.5rem;
   }
 
@@ -533,7 +560,7 @@
   .markdown-content :global(code) {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
       'Courier New', monospace;
-    background: rgba(148, 163, 184, 0.18);
+    background: rgba(148, 163, 184, 0.24);
     padding: 0.12rem 0.3rem;
     border-radius: 0.3rem;
     font-size: 0.9em;
@@ -546,7 +573,7 @@
   }
 
   .markdown-content :global(a) {
-    color: #0c4a6e;
+    color: #5eead4;
     text-decoration: underline;
     text-underline-offset: 2px;
   }

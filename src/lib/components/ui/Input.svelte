@@ -19,7 +19,7 @@
     onkeypress
   }: Props = $props();
 
-  const baseClasses = 'w-full h-10 px-3.5 border border-white/80 bg-white/75 text-slate-900 rounded-xl shadow-sm backdrop-blur focus:outline-none focus:ring-2 focus:ring-sky-300/85 focus:border-white disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseClasses = 'w-full h-10 px-3.5 border rounded-xl shadow-sm backdrop-blur text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-300/70 disabled:opacity-50 disabled:cursor-not-allowed';
 </script>
 
 <input
@@ -31,4 +31,5 @@
   {oninput}
   {onkeypress}
   class={baseClasses}
+  style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-control-alpha, 0.62));"
 />

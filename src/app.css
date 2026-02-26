@@ -4,13 +4,22 @@
 
 @layer base {
   :root {
-    color-scheme: light;
+    color-scheme: dark;
+    --doppler-window-alpha: 0.95;
+    --doppler-surface-alpha: 0.55;
+    --doppler-surface-strong-alpha: 0.7;
+    --doppler-border-alpha: 0.65;
+    --doppler-control-alpha: 0.62;
+    --doppler-control-strong-alpha: 0.78;
+    --doppler-accent-rgb: 20 184 166;
+    --doppler-capture-visible-rgb: 244 63 94;
+    --doppler-capture-hidden-rgb: 16 185 129;
   }
 
   html,
   body {
     font-size: 15px;
-    color: #0f172a;
+    color: #e2e8f0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -34,6 +43,36 @@
 }
 
 @layer components {
+  .doppler-control {
+    border: 1px solid rgba(148, 163, 184, var(--doppler-border-alpha, 0.65));
+    background: rgba(15, 23, 42, var(--doppler-control-alpha, 0.62));
+    color: #e2e8f0;
+  }
+
+  .doppler-control:hover {
+    background: rgba(15, 23, 42, var(--doppler-control-strong-alpha, 0.78));
+  }
+
+  .doppler-control-accent {
+    border: 1px solid rgba(var(--doppler-accent-rgb), 0.55);
+    background: rgba(var(--doppler-accent-rgb), 0.82);
+    color: #f8fafc;
+  }
+
+  .doppler-control-accent:hover {
+    background: rgba(var(--doppler-accent-rgb), 0.92);
+  }
+
+  .doppler-surface {
+    border: 1px solid rgba(148, 163, 184, var(--doppler-border-alpha, 0.65));
+    background: rgba(15, 23, 42, var(--doppler-surface-alpha, 0.55));
+  }
+
+  .doppler-surface-strong {
+    border: 1px solid rgba(148, 163, 184, var(--doppler-border-alpha, 0.65));
+    background: rgba(15, 23, 42, var(--doppler-surface-strong-alpha, 0.7));
+  }
+
   [data-hotkey] {
     position: relative;
   }

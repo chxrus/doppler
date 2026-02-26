@@ -20,9 +20,9 @@
   }: Props = $props();
 
   const variantClasses = {
-    primary: 'bg-sky-500/90 text-white border-sky-400/50 hover:bg-sky-500',
-    secondary: 'bg-white/78 text-slate-700 border-white/80 hover:bg-white',
-    danger: 'bg-rose-500/88 text-white border-rose-400/55 hover:bg-rose-500'
+    primary: 'bg-teal-500/85 text-white border-teal-300/55 hover:bg-teal-400',
+    secondary: 'bg-slate-900/45 text-slate-100 border-white/15 hover:bg-slate-900/75',
+    danger: 'bg-rose-500/78 text-white border-rose-300/55 hover:bg-rose-400'
   };
 
   const sizeClasses = {

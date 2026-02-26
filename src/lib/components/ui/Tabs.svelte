@@ -18,15 +18,16 @@
   }
 </script>
 
-<div class="rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
+<div class="rounded-xl border p-1.5 shadow-sm"
+  style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-control-alpha, 0.62));">
   <nav class="grid grid-cols-4 gap-1" aria-label="Tabs">
     {#each tabs as tab}
       <button
         type="button"
         onclick={() => handleTabClick(tab.id)}
         class="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition {activeTab === tab.id
-          ? 'bg-slate-100 text-slate-900 shadow-sm'
-          : 'text-slate-600 hover:bg-slate-100/85'}"
+          ? 'bg-teal-500/22 text-teal-100 shadow-sm border border-teal-300/45'
+          : 'text-slate-300 hover:bg-slate-900/70'}"
         aria-current={activeTab === tab.id ? 'page' : undefined}
       >
         {tab.label}
