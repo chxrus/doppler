@@ -146,7 +146,10 @@ pub async fn transcribe_last_recording() -> Result<String, String> {
             .await
             .map_err(|error| format!("Failed to transcribe audio: {error}"))
         }
-        "whisper" => Err("STT provider 'Whisper' is selected but not implemented yet.".to_string()),
+        "whisper" => Err(
+            "STT provider is no longer supported. Switch to 'Gemini' in Settings -> AI."
+                .to_string(),
+        ),
         other => Err(format!("Unsupported STT provider: {other}")),
     }
 }

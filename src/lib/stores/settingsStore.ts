@@ -57,7 +57,11 @@ function createSettingsStore() {
     async loadSettings(): Promise<void> {
       try {
         const settings = await invoke<AppSettings>('get_settings');
-        set(settings);
+        const merged = { ...DEFAULT_SETTINGS, ...settings };
+        if (merged.stt_provider === 'whisper') {
+          merged.stt_provider = 'gemini';
+        }
+        set(merged);
       } catch (error) {
         console.warn('Failed to load settings, using defaults:', error);
         set(DEFAULT_SETTINGS);

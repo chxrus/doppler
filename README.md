@@ -147,12 +147,6 @@ Setup instructions for local Ollama are here:
 
 - [docs/ollama-setup.md](docs/ollama-setup.md)
 
-### Handy (Local STT)
-
-Setup instructions for Handy local speech-to-text are here:
-
-- [docs/handy-setup.md](docs/handy-setup.md)
-
 ### Text Chat
 
 1. Type your question or prompt in the input field
@@ -252,7 +246,6 @@ Component Event → Frontend Boundary (commands.ts) → Rust Command → Service
 ## Acknowledgments
 
 Inspired by:
-- [Handy](https://github.com/cjpais/Handy) — STT and desktop architecture patterns
 - [cheating-daddy](https://github.com/sohzm/cheating-daddy) — Overlay UX and Gemini integration
 
 ---

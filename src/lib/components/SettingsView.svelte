@@ -54,8 +54,7 @@
     { id: 'ollama', label: 'Ollama (local)' }
   ];
   const sttProviderOptions = [
-    { id: 'gemini', label: 'Gemini' },
-    { id: 'whisper', label: 'Whisper (coming soon)' }
+    { id: 'gemini', label: 'Gemini' }
   ];
   const OLLAMA_SETUP_DOC_URL =
     'https://github.com/chxrus/doppler/blob/main/docs/ollama-setup.md';
@@ -182,6 +181,10 @@
     if ($settingsStore.text_provider === 'ollama' && ollamaModels.length === 0) {
       void detectOllamaModels();
     }
+  }
+
+  function handleSttProviderChange() {
+    settingsStore.updateField('stt_provider', $settingsStore.stt_provider);
   }
 
   function formatHotkey(hotkey: string): string[] {
@@ -410,7 +413,7 @@
             id="stt-provider"
             class="w-full rounded-xl border border-white/75 bg-white px-3 py-2 text-sm text-slate-900"
             bind:value={$settingsStore.stt_provider}
-            onchange={() => settingsStore.updateField('stt_provider', $settingsStore.stt_provider)}
+            onchange={handleSttProviderChange}
           >
             {#each sttProviderOptions as provider}
               <option value={provider.id}>{provider.label}</option>
@@ -564,11 +567,6 @@
           </div>
         {/if}
 
-        {#if $settingsStore.stt_provider === 'whisper'}
-          <p class="border-t border-slate-200/75 pt-2 text-xs text-slate-600">
-            Whisper speech-to-text provider is selected, but backend integration is not implemented yet.
-          </p>
-        {/if}
       </section>
 
     {:else if activeTab === 'overlay'}
