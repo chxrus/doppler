@@ -17,7 +17,6 @@ jobs:
         include:
           - os: ubuntu-24.04
           - os: windows-2022
-          - os: macos-13
           - os: macos-14
     runs-on: ${{ matrix.os }}
     steps:
@@ -36,10 +35,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             cmake \
+            pkg-config \
             libgtk-3-dev \
             libwebkit2gtk-4.1-dev \
             libsoup-3.0-dev \
             libappindicator3-dev \
+            libasound2-dev \
+            libspeechd-dev \
+            libx11-dev \
+            libxtst-dev \
+            libxdo-dev \
             librsvg2-dev \
             patchelf
 
