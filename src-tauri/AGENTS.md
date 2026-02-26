@@ -46,6 +46,28 @@ If a command fails, fix the issue instead of ignoring it.
 
 ---
 
+## GitHub workflows and releases
+
+Current workflows in this repository:
+- `.github/workflows/ci.yml` - runs checks on `push` to `main` and on `pull_request`.
+- `.github/workflows/release.yml` - publishes desktop bundles on tag push `v*` and supports manual `workflow_dispatch`.
+
+Release behavior:
+- Regular commits and `push` to `main` do not create GitHub Release assets.
+- Release assets are created only by `release.yml` when pushing a version tag like `v0.2.0`.
+- Matrix targets include `ubuntu-24.04`, `windows-2022`, `macos-13`, `macos-14`.
+
+How to ship a release:
+1. Bump app version in `src-tauri/tauri.conf.json` (and aligned project version files if needed).
+2. Commit and push branch changes.
+3. Create and push tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+4. Wait for `Release` workflow to finish, then verify assets in GitHub `Releases`.
+
+Windows artifacts:
+- Expected artifacts are published under the GitHub Release `Assets` section (typically `.msi`, optionally `.exe` depending on Tauri bundle/update configuration).
+
+---
+
 ## Where to put code
 
 Use this structure (or the closest existing equivalent) in `src-tauri/src`:
