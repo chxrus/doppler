@@ -82,8 +82,17 @@ export interface RecordingDeviceInfo {
   likely_system_audio: boolean;
 }
 
+export interface WhisperDeviceInfo {
+  id: string;
+  label: string;
+}
+
 export async function listRecordingDevices(): Promise<RecordingDeviceInfo[]> {
   return invoke<RecordingDeviceInfo[]>('list_recording_devices');
+}
+
+export async function listWhisperDevices(): Promise<WhisperDeviceInfo[]> {
+  return invoke<WhisperDeviceInfo[]>('list_whisper_devices');
 }
 
 export interface AppSettings {
@@ -95,6 +104,7 @@ export interface AppSettings {
   whisper_model_path: string;
   whisper_language: string;
   whisper_threads: number | null;
+  whisper_device: 'auto' | 'cpu' | `gpu:${number}`;
   ollama_base_url: string;
   ollama_model: string;
   lmstudio_base_url: string;

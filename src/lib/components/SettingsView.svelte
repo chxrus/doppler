@@ -10,7 +10,9 @@
     listLmStudioModels,
     listOllamaModels,
     listRecordingDevices,
+    listWhisperDevices,
     type RecordingDeviceInfo,
+    type WhisperDeviceInfo,
     saveApiKey as persistApiKey,
     setScreenCaptureProtection,
     setWindowAlwaysOnTop,
@@ -45,6 +47,7 @@
   let isDetectingLmStudioModels = $state(false);
   let lmstudioModelsErrorMessage = $state<string | null>(null);
   let whisperSupported = $state(false);
+  let whisperDevices = $state<WhisperDeviceInfo[]>([]);
 
   // Tab state
   let activeTab = $state('general');
@@ -86,6 +89,10 @@
   const isGeminiTextProvider = $derived($settingsStore.text_provider === 'gemini');
   const isGeminiSttProvider = $derived($settingsStore.stt_provider === 'gemini');
   const isWhisperSttProvider = $derived(whisperSupported && $settingsStore.stt_provider === 'whisper');
+  const whisperDeviceOptions = $derived.by(() => [
+    { id: 'auto', label: 'Auto (best available)' },
+    ...whisperDevices
+  ]);
 
   const filteredRecordingDevices = $derived.by(() => {
     if ($settingsStore.recording_source === 'system') {
@@ -147,6 +154,14 @@
       whisperSupported = await isWhisperSupported();
       if (!whisperSupported && $settingsStore.stt_provider === 'whisper') {
         settingsStore.updateField('stt_provider', 'gemini');
+      }
+      if (whisperSupported) {
+        whisperDevices = await listWhisperDevices();
+        const savedDeviceId = $settingsStore.whisper_device;
+        const hasSavedDevice = savedDeviceId === 'auto' || whisperDevices.some((device) => device.id === savedDeviceId);
+        if (!hasSavedDevice) {
+          settingsStore.updateField('whisper_device', 'auto');
+        }
       }
       recordingDevices = await listRecordingDevices();
       if ($settingsStore.text_provider === 'ollama') {
@@ -288,6 +303,10 @@
     }
 
     settingsStore.updateField('whisper_threads', parsedValue);
+  }
+
+  function updateWhisperDevice(value: 'auto' | 'cpu' | `gpu:${number}`) {
+    settingsStore.updateField('whisper_device', value);
   }
 
   function formatHotkey(hotkey: string): string[] {
@@ -672,6 +691,19 @@
               placeholder="auto (empty), en, ru..."
               oninput={() => updateWhisperLanguage($settingsStore.whisper_language)}
             />
+            <label for="whisper-device" class="block text-xs font-medium text-slate-300">
+              Device
+            </label>
+            <select
+              id="whisper-device"
+              class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
+              bind:value={$settingsStore.whisper_device}
+              onchange={() => updateWhisperDevice($settingsStore.whisper_device)}
+            >
+              {#each whisperDeviceOptions as option}
+                <option value={option.id}>{option.label}</option>
+              {/each}
+            </select>
             <label for="whisper-threads" class="block text-xs font-medium text-slate-300">
               Threads (optional)
             </label>

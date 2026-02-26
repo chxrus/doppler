@@ -11,6 +11,7 @@ export interface AppSettings {
   whisper_model_path: string;
   whisper_language: string;
   whisper_threads: number | null;
+  whisper_device: 'auto' | 'cpu' | `gpu:${number}`;
   ollama_base_url: string;
   ollama_model: string;
   lmstudio_base_url: string;
@@ -41,6 +42,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   whisper_model_path: '',
   whisper_language: '',
   whisper_threads: null,
+  whisper_device: 'auto',
   ollama_base_url: 'http://localhost:11434',
   ollama_model: 'llama3.2:3b',
   lmstudio_base_url: 'http://localhost:1234/v1',
@@ -61,6 +63,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   hotkey_click_through: 'CommandOrControl+Shift+X',
   hotkey_capture_visibility: 'CommandOrControl+Shift+H'
 };
+
+function isGpuDeviceId(value: string): value is `gpu:${number}` {
+  return /^gpu:\d+$/.test(value);
+}
 
 function createSettingsStore() {
   const { subscribe, set, update } = writable<AppSettings>(DEFAULT_SETTINGS);
@@ -83,6 +89,15 @@ function createSettingsStore() {
           typeof merged.whisper_threads === 'number' && merged.whisper_threads > 0
             ? merged.whisper_threads
             : null;
+        const rawWhisperDevice = (settings as { whisper_device?: unknown }).whisper_device;
+        merged.whisper_device =
+          rawWhisperDevice === 'cpu'
+            ? 'cpu'
+            : rawWhisperDevice === 'gpu'
+              ? 'gpu:0'
+              : typeof rawWhisperDevice === 'string' && isGpuDeviceId(rawWhisperDevice)
+                ? rawWhisperDevice
+                : 'auto';
         latestSettings = merged;
         set(merged);
       } catch (error) {

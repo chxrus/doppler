@@ -4,6 +4,7 @@ use crate::audio;
 use crate::audio::RecordedAudio;
 use crate::models::Settings;
 use crate::storage;
+pub use whisper_local::WhisperComputeDeviceInfo;
 
 const API_KEY_STORAGE_KEY: &str = "gemini_api_key";
 
@@ -33,4 +34,8 @@ pub async fn transcribe(
         "whisper" => whisper_local::transcribe(recorded_audio, settings).await,
         other => Err(format!("Unsupported STT provider: {other}")),
     }
+}
+
+pub fn list_whisper_devices() -> Vec<WhisperComputeDeviceInfo> {
+    whisper_local::list_compute_devices()
 }

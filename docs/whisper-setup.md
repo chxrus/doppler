@@ -22,7 +22,8 @@ Open `Settings -> AI`:
 1. Set `Speech-to-Text Provider` to `Whisper (local)`.
 2. Set `Model path` to the full path of your downloaded `.bin` file.
 3. Optional: set `Language` (for example `en`, `ru`) or leave empty for auto-detect.
-4. Optional: set `Threads` or leave empty for automatic value.
+4. Optional: set `Device` (`Auto` or one of detected local devices, including specific GPU).
+5. Optional: set `Threads` or leave empty for automatic value.
 
 ## 3. Check that offline transcription works
 

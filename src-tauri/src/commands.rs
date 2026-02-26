@@ -251,6 +251,11 @@ pub fn is_whisper_supported() -> bool {
 }
 
 #[tauri::command]
+pub async fn list_whisper_devices() -> Result<Vec<crate::stt::WhisperComputeDeviceInfo>, String> {
+    Ok(stt::list_whisper_devices())
+}
+
+#[tauri::command]
 pub async fn set_window_always_on_top(
     app: tauri::AppHandle,
     always_on_top: bool,

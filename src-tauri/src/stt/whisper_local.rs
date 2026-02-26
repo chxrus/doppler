@@ -1,10 +1,26 @@
 use crate::audio::RecordedAudio;
 use crate::audio_processing;
 use crate::models::Settings;
+use serde::Serialize;
+use std::ffi::CStr;
 use std::path::Path;
+use whisper_rs::whisper_rs_sys;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 const MIN_AUDIO_DURATION_SECONDS: f32 = 0.20;
+
+#[derive(Clone, Copy)]
+enum WhisperDevicePreference {
+    Auto,
+    Cpu,
+    Gpu { device_index: i32 },
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct WhisperComputeDeviceInfo {
+    pub id: String,
+    pub label: String,
+}
 
 pub async fn transcribe(
     recorded_audio: RecordedAudio,
@@ -45,13 +61,20 @@ pub async fn transcribe(
         .and_then(|value| i32::try_from(value).ok())
         .filter(|value| *value > 0)
         .unwrap_or_else(default_thread_count);
+    let device_preference = parse_device_preference(settings.whisper_device.as_deref());
 
     let mono_samples =
         audio_processing::downmix_to_mono(&recorded_audio.samples, recorded_audio.channel_count);
     let mono_16khz = audio_processing::resample_to_16k(&mono_samples, recorded_audio.sample_rate);
 
     let result_text = tokio::task::spawn_blocking(move || {
-        transcribe_with_whisper(&model_path, language.as_deref(), threads, &mono_16khz)
+        transcribe_with_whisper(
+            &model_path,
+            language.as_deref(),
+            threads,
+            device_preference,
+            &mono_16khz,
+        )
     })
     .await
     .map_err(|error| format!("Whisper failed: {error}"))??;
@@ -67,9 +90,11 @@ fn transcribe_with_whisper(
     model_path: &str,
     language: Option<&str>,
     threads: i32,
+    device_preference: WhisperDevicePreference,
     samples_16khz: &[f32],
 ) -> Result<String, String> {
-    let context_parameters = WhisperContextParameters::default();
+    let mut context_parameters = WhisperContextParameters::default();
+    apply_device_preference(&mut context_parameters, device_preference);
     let context = WhisperContext::new_with_params(model_path, context_parameters)
         .map_err(|error| format!("Whisper failed: {error}"))?;
     let mut state = context
@@ -117,4 +142,96 @@ fn default_thread_count() -> i32 {
         .and_then(|value| i32::try_from(value).ok())
         .filter(|value| *value > 0)
         .unwrap_or(1)
+}
+
+fn parse_device_preference(value: Option<&str>) -> WhisperDevicePreference {
+    let normalized = value.unwrap_or("auto").trim().to_lowercase();
+    if let Some(raw_device_index) = normalized.strip_prefix("gpu:") {
+        if let Ok(device_index) = raw_device_index.parse::<i32>() {
+            if device_index >= 0 {
+                return WhisperDevicePreference::Gpu { device_index };
+            }
+        }
+    }
+
+    match normalized.as_str() {
+        "cpu" => WhisperDevicePreference::Cpu,
+        "gpu" => WhisperDevicePreference::Gpu { device_index: 0 },
+        _ => WhisperDevicePreference::Auto,
+    }
+}
+
+fn apply_device_preference(
+    context_parameters: &mut WhisperContextParameters<'_>,
+    device_preference: WhisperDevicePreference,
+) {
+    match device_preference {
+        WhisperDevicePreference::Auto => {}
+        WhisperDevicePreference::Cpu => {
+            context_parameters.use_gpu(false);
+        }
+        WhisperDevicePreference::Gpu { device_index } => {
+            context_parameters.use_gpu(true);
+            context_parameters.gpu_device(device_index);
+        }
+    }
+}
+
+pub fn list_compute_devices() -> Vec<WhisperComputeDeviceInfo> {
+    let mut devices = vec![WhisperComputeDeviceInfo {
+        id: "cpu".to_string(),
+        label: "CPU".to_string(),
+    }];
+
+    let mut gpu_index = 0_i32;
+
+    unsafe {
+        whisper_rs_sys::ggml_backend_load_all();
+        let device_count = whisper_rs_sys::ggml_backend_dev_count();
+        for index in 0..device_count {
+            let device = whisper_rs_sys::ggml_backend_dev_get(index);
+            if device.is_null() {
+                continue;
+            }
+
+            let device_type = whisper_rs_sys::ggml_backend_dev_type(device);
+            let is_gpu =
+                device_type == whisper_rs_sys::ggml_backend_dev_type_GGML_BACKEND_DEVICE_TYPE_GPU;
+
+            if !is_gpu {
+                continue;
+            }
+
+            let device_name =
+                c_string_or_default(whisper_rs_sys::ggml_backend_dev_name(device), "GPU");
+            let description = c_string_or_default(
+                whisper_rs_sys::ggml_backend_dev_description(device),
+                &device_name,
+            );
+            let label = if description.trim().is_empty() || description == device_name {
+                format!("GPU {gpu_index}: {device_name}")
+            } else {
+                format!("GPU {gpu_index}: {description}")
+            };
+
+            devices.push(WhisperComputeDeviceInfo {
+                id: format!("gpu:{gpu_index}"),
+                label,
+            });
+            gpu_index += 1;
+        }
+    }
+
+    devices
+}
+
+fn c_string_or_default(value: *const std::os::raw::c_char, fallback: &str) -> String {
+    if value.is_null() {
+        return fallback.to_string();
+    }
+
+    unsafe { CStr::from_ptr(value) }
+        .to_string_lossy()
+        .trim()
+        .to_string()
 }
