@@ -15,9 +15,7 @@
     oninput
   }: Props = $props();
 
-  const baseClasses = 'w-full h-2.5 appearance-none cursor-pointer bg-transparent';
-  const trackClasses = '[&::-webkit-slider-runnable-track]:h-2.5 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-slate-600/80 [&::-webkit-slider-runnable-track]:border [&::-webkit-slider-runnable-track]:border-slate-400/45 [&::-webkit-slider-runnable-track]:shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] [&::-moz-range-track]:h-2.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-slate-600/80 [&::-moz-range-track]:border [&::-moz-range-track]:border-slate-400/45';
-  const thumbClasses = '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-teal-400 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-teal-200/75 [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(15,23,42,0.45)] [&::-webkit-slider-thumb]:-mt-[4px] [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-teal-400 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-teal-200/75';
+  const baseClasses = 'doppler-slider w-full h-2.5 appearance-none cursor-pointer bg-transparent';
 </script>
 
 <input
@@ -27,5 +25,43 @@
   {step}
   bind:value
   {oninput}
-  class="{baseClasses} {trackClasses} {thumbClasses}"
+  class={baseClasses}
 />
+
+<style>
+  .doppler-slider::-webkit-slider-runnable-track {
+    height: 0.625rem;
+    border-radius: 9999px;
+    background: rgb(var(--doppler-slider-track-rgb, 71 85 105) / var(--doppler-slider-track-alpha, 0.8));
+    border: 1px solid rgb(var(--doppler-slider-track-border-rgb, 148 163 184) / var(--doppler-slider-track-border-alpha, 0.45));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
+  }
+
+  .doppler-slider::-moz-range-track {
+    height: 0.625rem;
+    border-radius: 9999px;
+    background: rgb(var(--doppler-slider-track-rgb, 71 85 105) / var(--doppler-slider-track-alpha, 0.8));
+    border: 1px solid rgb(var(--doppler-slider-track-border-rgb, 148 163 184) / var(--doppler-slider-track-border-alpha, 0.45));
+  }
+
+  .doppler-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 1rem;
+    height: 1rem;
+    margin-top: -0.25rem;
+    border-radius: 9999px;
+    background: rgb(45 212 191 / 0.95);
+    border: 1px solid rgb(153 246 228 / 0.8);
+    box-shadow: 0 0 0 1px rgb(15 23 42 / 0.45);
+    cursor: pointer;
+  }
+
+  .doppler-slider::-moz-range-thumb {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 9999px;
+    background: rgb(45 212 191 / 0.95);
+    border: 1px solid rgb(153 246 228 / 0.8);
+    cursor: pointer;
+  }
+</style>

@@ -3,6 +3,7 @@
   import { listen } from '@tauri-apps/api/event';
   import { openUrl } from '@tauri-apps/plugin-opener';
   import { buildHotkeyFromEvent, formatHotkeyLabel, isHotkeyPressed } from '$lib/utils/hotkeys';
+  import { applyTheme, type AppTheme } from '$lib/utils/theme';
   import {
     getApiKey,
     isWhisperSupported,
@@ -54,6 +55,10 @@
   const textProviderOptions = [
     { id: 'gemini', label: 'Gemini' },
     { id: 'ollama', label: 'Ollama (local)' }
+  ];
+  const themeOptions: Array<{ id: AppTheme; label: string }> = [
+    { id: 'dark', label: 'Dark' },
+    { id: 'light', label: 'Light' }
   ];
   const sttProviderOptions = $derived.by(() => [
     { id: 'gemini', label: 'Gemini', disabled: false },
@@ -159,6 +164,11 @@
     if (!hasSelectedDevice) {
       settingsStore.updateField('recording_input_device', DEFAULT_INPUT_DEVICE);
     }
+  }
+
+  function handleThemeChange() {
+    const theme = applyTheme($settingsStore.theme);
+    settingsStore.updateField('theme', theme);
   }
 
   async function detectOllamaModels() {
@@ -371,7 +381,7 @@
 
 <div class="h-full flex flex-col gap-2 text-slate-100">
   <div class="settings-select-fix flex-1 min-h-0 rounded-2xl backdrop-blur-xl p-2 flex flex-col gap-2 select-none"
-    style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-surface-alpha, 0.55));">
+    style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgb(var(--doppler-surface-rgb, 15 23 42) / var(--doppler-surface-alpha, 0.55));">
     <!-- Tabs Navigation -->
     <div class="pb-1">
     <div>
@@ -387,6 +397,21 @@
       <!-- General Tab (Placeholder) -->
       <section class="space-y-3 p-1">
         <h3 class="text-sm font-semibold text-slate-100">General Settings</h3>
+        <div class="space-y-2">
+          <label class="block text-xs font-medium text-slate-300" for="theme">
+            Theme
+          </label>
+          <select
+            id="theme"
+            class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
+            bind:value={$settingsStore.theme}
+            onchange={handleThemeChange}
+          >
+            {#each themeOptions as themeOption}
+              <option value={themeOption.id}>{themeOption.label}</option>
+            {/each}
+          </select>
+        </div>
         <div class="space-y-2">
           <label class="block text-xs font-medium text-slate-300" for="recording-source">
             Recording Source
@@ -961,7 +986,7 @@
   </div>
 
   <div class="rounded-2xl border backdrop-blur-xl p-2.5 md:p-3"
-    style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-surface-strong-alpha, 0.7));">
+    style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgb(var(--doppler-surface-rgb, 15 23 42) / var(--doppler-surface-strong-alpha, 0.7));">
     <div class="flex items-center gap-2">
       <button
         type="button"
@@ -994,8 +1019,8 @@
         type="button"
         class="h-11 flex-1 rounded-xl border text-sm font-semibold transition text-slate-100"
         style={$settingsStore.screen_capture_protection
-          ? 'border-color: rgba(var(--doppler-capture-hidden-rgb), 0.82); background: rgba(var(--doppler-capture-hidden-rgb), 0.34); color: rgb(167, 243, 208);'
-          : 'border-color: rgba(var(--doppler-capture-visible-rgb), 0.86); background: rgba(var(--doppler-capture-visible-rgb), 0.26); color: rgb(254, 205, 211);'}
+          ? 'border-color: rgb(var(--doppler-capture-hidden-rgb) / 0.82); background: rgb(var(--doppler-capture-hidden-rgb) / var(--doppler-capture-hidden-bg-alpha, 0.34)); color: rgb(var(--doppler-capture-hidden-text-rgb, 167 243 208));'
+          : 'border-color: rgb(var(--doppler-capture-visible-rgb) / 0.86); background: rgb(var(--doppler-capture-visible-rgb) / var(--doppler-capture-visible-bg-alpha, 0.26)); color: rgb(var(--doppler-capture-visible-text-rgb, 254 205 211));'}
         onclick={toggleCaptureVisibility}
         title={$settingsStore.screen_capture_protection
           ? 'Window is hidden from screen recording (click to make visible)'
@@ -1031,7 +1056,7 @@
     user-select: text;
     -webkit-user-select: text;
     border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65));
-    background: rgba(15, 23, 42, var(--doppler-control-alpha, 0.62));
+    background: rgb(var(--doppler-control-rgb, 15 23 42) / var(--doppler-control-alpha, 0.62));
     color: #e2e8f0;
   }
 

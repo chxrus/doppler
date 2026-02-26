@@ -31,5 +31,5 @@
   {oninput}
   {onkeypress}
   class={baseClasses}
-  style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-control-alpha, 0.62));"
+  style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgb(var(--doppler-control-rgb, 15 23 42) / var(--doppler-control-alpha, 0.62));"
 />

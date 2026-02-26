@@ -5,15 +5,42 @@
 
   let { size = 'md' }: Props = $props();
 
-  const sizeClasses = {
-    sm: 'w-4 h-4 border-2',
-    md: 'w-6 h-6 border-4',
-    lg: 'w-8 h-8 border-4'
+  const containerClasses = {
+    sm: 'h-4 gap-1',
+    md: 'h-6 gap-1.5',
+    lg: 'h-8 gap-2'
   };
 
-  const spinnerClasses = $derived(`inline-block ${sizeClasses[size]} border-gray-200 border-t-blue-500 rounded-full animate-spin`);
+  const dotClasses = {
+    sm: 'h-1.5 w-1.5',
+    md: 'h-2 w-2',
+    lg: 'h-2.5 w-2.5'
+  };
 </script>
 
-<div class={spinnerClasses} role="status" aria-label="Loading">
-  <span class="sr-only">Loading...</span>
+<div class="inline-flex items-center {containerClasses[size]}" role="status" aria-label="Loading">
+  <span class="spinner-dot {dotClasses[size]}" style="animation-delay: 0ms;"></span>
+  <span class="spinner-dot {dotClasses[size]}" style="animation-delay: 150ms;"></span>
+  <span class="spinner-dot {dotClasses[size]}" style="animation-delay: 300ms;"></span>
 </div>
+
+<style>
+  .spinner-dot {
+    border-radius: 9999px;
+    background: rgb(129 140 248 / 0.9);
+    animation: dot-pulse 0.95s ease-in-out infinite;
+  }
+
+  @keyframes dot-pulse {
+    0%,
+    100% {
+      opacity: 0.3;
+      transform: scale(0.82);
+    }
+
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+</style>

@@ -20,6 +20,10 @@ export async function sendMessage(message: string): Promise<string> {
   return invoke<string>('send_message', { message });
 }
 
+export async function sendMessageStream(message: string, requestId: number): Promise<string> {
+  return invoke<string>('send_message_stream', { message, requestId });
+}
+
 export async function listOllamaModels(baseUrl: string): Promise<string[]> {
   return invoke<string[]>('list_ollama_models', { baseUrl });
 }
@@ -79,6 +83,7 @@ export async function listRecordingDevices(): Promise<RecordingDeviceInfo[]> {
 }
 
 export interface AppSettings {
+  theme: 'dark' | 'light';
   text_provider: string;
   stt_provider: string;
   gemini_model: string;

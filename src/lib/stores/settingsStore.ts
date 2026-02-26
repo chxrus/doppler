@@ -1,7 +1,9 @@
 import { writable } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
+import { normalizeTheme } from '$lib/utils/theme';
 
 export interface AppSettings {
+  theme: 'dark' | 'light';
   text_provider: string;
   stt_provider: string;
   gemini_model: string;
@@ -28,6 +30,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  theme: 'dark',
   text_provider: 'gemini',
   stt_provider: 'gemini',
   gemini_model: 'gemini-2.5-flash',
@@ -64,6 +67,7 @@ function createSettingsStore() {
       try {
         const settings = await invoke<AppSettings>('get_settings');
         const merged = { ...DEFAULT_SETTINGS, ...settings };
+        merged.theme = normalizeTheme(merged.theme);
         merged.whisper_model_path =
           typeof merged.whisper_model_path === 'string' ? merged.whisper_model_path : '';
         merged.whisper_language =

@@ -19,7 +19,7 @@
 </script>
 
 <div class="rounded-xl border p-1.5 shadow-sm"
-  style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-control-alpha, 0.62));">
+  style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgb(var(--doppler-control-rgb, 15 23 42) / var(--doppler-control-alpha, 0.62));">
   <nav class="grid grid-cols-4 gap-1" aria-label="Tabs">
     {#each tabs as tab}
       <button

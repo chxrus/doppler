@@ -4,6 +4,7 @@
   import ChatView from '$lib/components/ChatView.svelte';
   import SettingsView from '$lib/components/SettingsView.svelte';
   import { settingsStore } from '$lib/stores/settingsStore';
+  import { applyTheme } from '$lib/utils/theme';
   import { setWindowAlwaysOnTop, setWindowClickThrough } from '$lib/tauri/commands';
 
   let isSettingsOpen = $state(false);
@@ -32,6 +33,7 @@
     await settingsStore.loadSettings();
     const settings = $settingsStore;
 
+    applyTheme(settings.theme);
     applyOpacityVariables(settings.opacity);
 
     // Apply always-on-top
@@ -61,11 +63,15 @@
       void unlistenPromise.then((unlisten) => unlisten());
     };
   });
+
+  $effect(() => {
+    applyTheme($settingsStore.theme);
+  });
 </script>
 
 <div
   class="min-h-screen p-2"
-  style="background: radial-gradient(circle at top left, rgba(15, 23, 42, var(--doppler-window-alpha, 0.95)) 0%, rgba(2, 6, 23, var(--doppler-window-alpha, 0.95)) 48%, rgba(3, 10, 27, var(--doppler-window-alpha, 0.95)) 100%);"
+  style="background: radial-gradient(circle at top left, rgb(var(--doppler-bg-start-rgb, 15 23 42) / var(--doppler-window-alpha, 0.95)) 0%, rgb(var(--doppler-bg-mid-rgb, 2 6 23) / var(--doppler-window-alpha, 0.95)) 48%, rgb(var(--doppler-bg-end-rgb, 3 10 27) / var(--doppler-window-alpha, 0.95)) 100%);"
 >
   <div class="h-[calc(100vh-1rem)] overflow-hidden flex flex-col">
     <main class="relative flex-1 overflow-hidden">

@@ -314,13 +314,13 @@
     {/if}
 
     <div class="flex-1 min-h-0 rounded-2xl border backdrop-blur-xl p-2 flex flex-col gap-2"
-      style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-surface-alpha, 0.55));">
+      style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgb(var(--doppler-surface-rgb, 15 23 42) / var(--doppler-surface-alpha, 0.55));">
       <div class="flex items-center justify-between gap-2 select-none">
         <div
           class="h-9 shrink-0 rounded-lg border px-2.5 text-[11px] font-semibold uppercase tracking-wide flex items-center gap-1.5"
           style={$settingsStore.screen_capture_protection
-            ? 'border-color: rgba(var(--doppler-capture-hidden-rgb), 0.78); background: rgba(var(--doppler-capture-hidden-rgb), 0.28); color: rgb(167, 243, 208);'
-            : 'border-color: rgba(var(--doppler-capture-visible-rgb), 0.85); background: rgba(var(--doppler-capture-visible-rgb), 0.24); color: rgb(254, 205, 211);'}
+            ? 'border-color: rgb(var(--doppler-capture-hidden-rgb) / 0.78); background: rgb(var(--doppler-capture-hidden-rgb) / var(--doppler-capture-hidden-bg-alpha, 0.28)); color: rgb(var(--doppler-capture-hidden-text-rgb, 167 243 208));'
+            : 'border-color: rgb(var(--doppler-capture-visible-rgb) / 0.85); background: rgb(var(--doppler-capture-visible-rgb) / var(--doppler-capture-visible-bg-alpha, 0.24)); color: rgb(var(--doppler-capture-visible-text-rgb, 254 205 211));'}
           title={$settingsStore.screen_capture_protection
             ? 'Window is hidden from screen recording'
             : 'Window is visible in screen recording'}
@@ -346,7 +346,7 @@
         <button
           type="button"
           class="h-9 px-2 rounded-lg border text-xs font-semibold text-slate-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-          style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-control-alpha, 0.62));"
+          style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgb(var(--doppler-control-rgb, 15 23 42) / var(--doppler-control-alpha, 0.62));"
           onclick={() => {
             void clearSession();
           }}
@@ -358,7 +358,7 @@
         <button
           type="button"
           class="h-9 w-9 rounded-lg border text-slate-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-          style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-control-alpha, 0.62));"
+          style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgb(var(--doppler-control-rgb, 15 23 42) / var(--doppler-control-alpha, 0.62));"
           onclick={goToPreviousExchange}
           disabled={!canGoPrevious}
           aria-label="Previous exchange"
@@ -378,7 +378,7 @@
         <button
           type="button"
           class="h-9 w-9 rounded-lg border text-slate-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
-          style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-control-alpha, 0.62));"
+          style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgb(var(--doppler-control-rgb, 15 23 42) / var(--doppler-control-alpha, 0.62));"
           onclick={goToNextExchange}
           disabled={!canGoNext}
           aria-label="Next exchange"
@@ -394,15 +394,21 @@
       <div class="flex-1 min-h-0 overflow-auto space-y-3">
         {#if currentExchange != null}
           <div class="rounded-2xl border p-3 md:p-4 space-y-2"
-            style="border-color: rgba(var(--doppler-accent-rgb), 0.55); background: rgba(var(--doppler-accent-rgb), 0.16);">
-            <div class="text-[11px] uppercase tracking-wide font-semibold text-slate-300">Question</div>
+            style="border-color: rgb(var(--doppler-accent-rgb) / 0.62); background: rgb(var(--doppler-accent-rgb) / 0.18); box-shadow: inset 3px 0 0 rgb(var(--doppler-accent-rgb) / 0.65);">
+            <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide font-semibold text-teal-100">
+              <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-teal-200/40 bg-teal-400/20 px-1">You</span>
+              <span>Question</span>
+            </div>
             <p class="text-[1.02rem] leading-relaxed text-slate-100 break-words">{currentExchange.question}</p>
           </div>
 
           <div class="rounded-2xl border p-3 md:p-4 space-y-2"
-            style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-surface-strong-alpha, 0.7));">
+            style="border-color: rgba(99, 102, 241, 0.45); background: rgb(var(--doppler-surface-rgb, 15 23 42) / var(--doppler-surface-strong-alpha, 0.74)); box-shadow: inset 3px 0 0 rgba(129, 140, 248, 0.58);">
             <div class="flex items-center justify-between">
-              <div class="text-[11px] uppercase tracking-wide font-semibold text-slate-300">Answer</div>
+              <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide font-semibold text-indigo-100">
+                <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-indigo-200/40 bg-indigo-400/20 px-1">AI</span>
+                <span>Answer</span>
+              </div>
               {#if !currentExchange.isPending}
                 <SpeakButton
                   speaking={speakingExchangeIndex === currentExchangeIndex}
@@ -417,13 +423,12 @@
                 <Spinner size="sm" />
                 <span class="text-sm">Generating response...</span>
               </div>
-            {:else}
-              <div
-                class="markdown-content text-[1.02rem] leading-relaxed text-slate-100 break-words"
-              >
-                {@html renderMarkdown(currentExchange.answer)}
-              </div>
             {/if}
+            <div
+              class="markdown-content text-[1.02rem] leading-relaxed text-slate-100 break-words"
+            >
+              {@html renderMarkdown(currentExchange.answer)}
+            </div>
           </div>
         {:else}
           <div class="h-full min-h-[140px] flex items-center justify-center">
@@ -435,7 +440,7 @@
 
     <div
       class="rounded-2xl border backdrop-blur-xl p-2.5 md:p-3 transition-all"
-      style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-surface-strong-alpha, 0.7));"
+      style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgb(var(--doppler-surface-rgb, 15 23 42) / var(--doppler-surface-strong-alpha, 0.7));"
       title={$settingsStore.screen_capture_protection
         ? 'Window is hidden from capture'
         : 'Warning: window is visible in capture'}
@@ -492,7 +497,7 @@
           onkeydown={handleInputKeyDown}
           placeholder="Ask a question..."
           class="select-text flex-1 min-w-0 h-11 rounded-xl border px-3.5 text-[1rem] text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-300/70"
-          style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgba(15, 23, 42, var(--doppler-control-alpha, 0.62));"
+          style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgb(var(--doppler-control-rgb, 15 23 42) / var(--doppler-control-alpha, 0.62));"
           title={`Type question and press ${formatHotkeyLabel($settingsStore.hotkey_send)} to send`}
           data-hotkey={formatHotkeyLabel($settingsStore.hotkey_send)}
         />

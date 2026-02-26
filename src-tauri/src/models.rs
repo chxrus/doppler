@@ -9,6 +9,7 @@ pub struct Message {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
+    pub theme: String,
     pub text_provider: String,
     pub stt_provider: String,
     pub gemini_model: String,
@@ -37,6 +38,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            theme: "dark".to_string(),
             text_provider: "gemini".to_string(),
             stt_provider: "gemini".to_string(),
             gemini_model: "gemini-2.5-flash".to_string(),
