@@ -154,6 +154,10 @@
           if (trimmedTranscription !== '') {
             input = input.trim() === '' ? trimmedTranscription : `${input.trim()} ${trimmedTranscription}`;
             chatStore.setInputDraft(input);
+
+            if ($settingsStore.auto_send_transcription) {
+              sendMessage();
+            }
           }
         })
         .catch((error) => {

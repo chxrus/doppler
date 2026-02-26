@@ -100,6 +100,7 @@ export interface AppSettings {
   lmstudio_base_url: string;
   lmstudio_model: string;
   tts_rate: number;
+  auto_send_transcription: boolean;
   recording_source: string;
   recording_input_device: string;
   opacity: number;

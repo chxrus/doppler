@@ -16,6 +16,7 @@ export interface AppSettings {
   lmstudio_base_url: string;
   lmstudio_model: string;
   tts_rate: number;
+  auto_send_transcription: boolean;
   recording_source: string;
   recording_input_device: string;
   opacity: number;
@@ -45,6 +46,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   lmstudio_base_url: 'http://localhost:1234/v1',
   lmstudio_model: '',
   tts_rate: 1.0,
+  auto_send_transcription: false,
   recording_source: 'microphone',
   recording_input_device: 'Default input',
   opacity: 0.95,

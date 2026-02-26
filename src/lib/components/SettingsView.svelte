@@ -506,6 +506,21 @@
             oninput={() => settingsStore.updateField('tts_rate', $settingsStore.tts_rate, true)}
           />
         </div>
+
+        <div class="space-y-2">
+          <Checkbox
+            bind:checked={$settingsStore.auto_send_transcription}
+            label="Auto-send transcribed voice input"
+            onchange={() =>
+              settingsStore.updateField(
+                'auto_send_transcription',
+                $settingsStore.auto_send_transcription
+              )}
+          />
+          <p class="text-xs text-slate-400">
+            When enabled, transcribed voice text is sent immediately after it appears in the input.
+          </p>
+        </div>
       </section>
 
     {:else if activeTab === 'ai'}
