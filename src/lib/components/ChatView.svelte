@@ -395,7 +395,8 @@
         {#if currentExchange != null}
           <div class="rounded-2xl border p-3 md:p-4 space-y-2"
             style="border-color: rgb(var(--doppler-accent-rgb) / 0.62); background: rgb(var(--doppler-accent-rgb) / 0.18); box-shadow: inset 3px 0 0 rgb(var(--doppler-accent-rgb) / 0.65);">
-            <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide font-semibold text-teal-100">
+            <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide font-semibold"
+              style="color: rgb(var(--doppler-label-question-rgb, 204 251 241));">
               <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-teal-200/40 bg-teal-400/20 px-1">You</span>
               <span>Question</span>
             </div>
@@ -405,7 +406,8 @@
           <div class="rounded-2xl border p-3 md:p-4 space-y-2"
             style="border-color: rgba(99, 102, 241, 0.45); background: rgb(var(--doppler-surface-rgb, 15 23 42) / var(--doppler-surface-strong-alpha, 0.74)); box-shadow: inset 3px 0 0 rgba(129, 140, 248, 0.58);">
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide font-semibold text-indigo-100">
+              <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide font-semibold"
+                style="color: rgb(var(--doppler-label-answer-rgb, 224 231 255));">
                 <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-indigo-200/40 bg-indigo-400/20 px-1">AI</span>
                 <span>Answer</span>
               </div>

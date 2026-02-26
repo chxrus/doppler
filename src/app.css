@@ -36,6 +36,8 @@
     --doppler-button-secondary-text-rgb: 226 232 240;
     --doppler-button-secondary-bg-alpha: 0.62;
     --doppler-button-secondary-hover-alpha: 0.78;
+    --doppler-label-question-rgb: 204 251 241;
+    --doppler-label-answer-rgb: 224 231 255;
   }
 
   :root[data-theme='light'] {
@@ -67,6 +69,8 @@
     --doppler-button-secondary-text-rgb: 30 41 59;
     --doppler-button-secondary-bg-alpha: 0.9;
     --doppler-button-secondary-hover-alpha: 0.98;
+    --doppler-label-question-rgb: 13 148 136;
+    --doppler-label-answer-rgb: 67 56 202;
   }
 
   html,
