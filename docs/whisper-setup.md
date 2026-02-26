@@ -1,59 +1,45 @@
 # Whisper setup (offline STT)
 
-This guide explains how to enable local speech-to-text in Doppler using `whisper.cpp` models with no network requests.
+This guide is for Doppler users who want local speech-to-text with no network requests and no API key.
 
-## 1. Build Doppler with Whisper support
+## 1. Download a Whisper model
 
-Whisper is feature-gated to avoid extra build requirements when not needed.
-
-Build/run with:
-
-```bash
-cargo run --features local-whisper
-```
-
-If you build from the project root via Tauri tooling, pass the same feature to Rust build (for example through your Tauri build configuration/CLI flags).
-
-## 2. Install required build tools
-
-`whisper-rs` depends on `whisper-rs-sys`, which requires `cmake` at build time.
-
-- macOS: `brew install cmake`
-- Ubuntu/Debian: `sudo apt-get install cmake`
-- Windows: install [CMake](https://cmake.org/download/) and ensure it is in `PATH`
-
-## 3. Download a Whisper model file
-
-Download any GGML model from the official `whisper.cpp` model list:
+Get a GGML model file from the official list:
 
 - [whisper.cpp models](https://github.com/ggerganov/whisper.cpp#available-models-and-languages)
 
-Example file names:
-- `ggml-tiny.bin`
-- `ggml-base.bin`
-- `ggml-small.bin`
+Common options:
+- `ggml-tiny.bin` (fastest, lower accuracy)
+- `ggml-base.bin` (balanced)
+- `ggml-small.bin` (higher quality, slower)
 
-## 4. Configure Doppler settings
+Save the `.bin` file to a location you can access later.
+
+## 2. Configure Doppler
 
 Open `Settings -> AI`:
 
 1. Set `Speech-to-Text Provider` to `Whisper (local)`.
-2. Set `Model path` to the local path of your `.bin` model file.
+2. Set `Model path` to the full path of your downloaded `.bin` file.
 3. Optional: set `Language` (for example `en`, `ru`) or leave empty for auto-detect.
-4. Optional: set `Threads` or leave empty to use CPU default.
+4. Optional: set `Threads` or leave empty for automatic value.
 
-## 5. Verify offline transcription
+## 3. Check that offline transcription works
 
-1. Turn off internet.
-2. Record 3-10 seconds of speech.
-3. Stop recording and wait for transcription.
+1. Record 3-10 seconds of speech.
+2. Stop recording and wait for transcription.
 
 Expected behavior:
-- no network calls
-- no API key required
+- transcription is done locally
+- no API key is required
 
-Common errors:
+## Common errors
+
 - `Whisper model path is not set`
+  - Set `Model path` in settings.
 - `Whisper model file not found: <path>`
+  - Check that file exists and path is correct.
 - `Audio too short to transcribe`
+  - Record a bit longer.
 - `No speech detected`
+  - Speak louder/clearer, reduce noise, or use a larger model.
