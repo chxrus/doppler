@@ -279,14 +279,16 @@ fn process_stream_payload(
         return consume_stream_body(body, full_text, on_chunk);
     }
 
-    for line in payload.lines().map(str::trim).filter(|line| !line.is_empty()) {
+    for line in payload
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+    {
         if line == "[DONE]" {
             continue;
         }
         let body: GeminiResponse = serde_json::from_str(line).map_err(|error| {
-            GeminiError::InvalidResponse(format!(
-                "Failed to parse Gemini streaming chunk: {error}"
-            ))
+            GeminiError::InvalidResponse(format!("Failed to parse Gemini streaming chunk: {error}"))
         })?;
         consume_stream_body(body, full_text, on_chunk)?;
     }

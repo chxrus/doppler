@@ -13,6 +13,8 @@ export interface AppSettings {
   whisper_threads: number | null;
   ollama_base_url: string;
   ollama_model: string;
+  lmstudio_base_url: string;
+  lmstudio_model: string;
   tts_rate: number;
   recording_source: string;
   recording_input_device: string;
@@ -40,6 +42,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   whisper_threads: null,
   ollama_base_url: 'http://localhost:11434',
   ollama_model: 'llama3.2:3b',
+  lmstudio_base_url: 'http://localhost:1234/v1',
+  lmstudio_model: '',
   tts_rate: 1.0,
   recording_source: 'microphone',
   recording_input_device: 'Default input',

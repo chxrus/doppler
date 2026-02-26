@@ -28,6 +28,10 @@ export async function listOllamaModels(baseUrl: string): Promise<string[]> {
   return invoke<string[]>('list_ollama_models', { baseUrl });
 }
 
+export async function listLmStudioModels(baseUrl: string): Promise<string[]> {
+  return invoke<string[]>('list_lmstudio_models', { baseUrl });
+}
+
 export async function startRecording(): Promise<void> {
   await invoke('start_recording');
 }
@@ -93,6 +97,8 @@ export interface AppSettings {
   whisper_threads: number | null;
   ollama_base_url: string;
   ollama_model: string;
+  lmstudio_base_url: string;
+  lmstudio_model: string;
   tts_rate: number;
   recording_source: string;
   recording_input_device: string;

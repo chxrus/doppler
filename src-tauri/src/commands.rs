@@ -1,5 +1,6 @@
 use crate::audio;
 use crate::gemini;
+use crate::lmstudio;
 use crate::ollama;
 use crate::storage;
 use crate::stt;
@@ -85,6 +86,14 @@ pub async fn send_message(message: String) -> Result<String, String> {
         )
         .await
         .map_err(|e| format!("Failed to send message: {e}")),
+        "lmstudio" => lmstudio::send_message(
+            Some(&settings.lmstudio_base_url),
+            Some(&settings.lmstudio_model),
+            message,
+            Some(settings.gemini_temperature),
+        )
+        .await
+        .map_err(|e| format!("Failed to send message: {e}")),
         other => Err(format!("Unsupported text provider: {other}")),
     }
 }
@@ -149,6 +158,17 @@ pub async fn send_message_stream(
         )
         .await
         .map_err(|e| format!("Failed to send message: {e}")),
+        "lmstudio" => {
+            let response = lmstudio::send_message(
+                Some(&settings.lmstudio_base_url),
+                Some(&settings.lmstudio_model),
+                message,
+                Some(settings.gemini_temperature),
+            )
+            .await
+            .map_err(|e| format!("Failed to send message: {e}"))?;
+            Ok(response)
+        }
         other => Err(format!("Unsupported text provider: {other}")),
     }
 }
@@ -158,6 +178,13 @@ pub async fn list_ollama_models(base_url: String) -> Result<Vec<String>, String>
     ollama::list_models(Some(&base_url))
         .await
         .map_err(|error| format!("Failed to list Ollama models: {error}"))
+}
+
+#[tauri::command]
+pub async fn list_lmstudio_models(base_url: String) -> Result<Vec<String>, String> {
+    lmstudio::list_models(Some(&base_url))
+        .await
+        .map_err(|error| format!("Failed to list LM Studio models: {error}"))
 }
 
 #[tauri::command]

@@ -7,6 +7,7 @@
   import {
     getApiKey,
     isWhisperSupported,
+    listLmStudioModels,
     listOllamaModels,
     listRecordingDevices,
     type RecordingDeviceInfo,
@@ -40,6 +41,9 @@
   let ollamaModels = $state<string[]>([]);
   let isDetectingOllamaModels = $state(false);
   let ollamaModelsErrorMessage = $state<string | null>(null);
+  let lmstudioModels = $state<string[]>([]);
+  let isDetectingLmStudioModels = $state(false);
+  let lmstudioModelsErrorMessage = $state<string | null>(null);
   let whisperSupported = $state(false);
 
   // Tab state
@@ -54,7 +58,8 @@
 
   const textProviderOptions = [
     { id: 'gemini', label: 'Gemini' },
-    { id: 'ollama', label: 'Ollama (local)' }
+    { id: 'ollama', label: 'Ollama (local)' },
+    { id: 'lmstudio', label: 'LM Studio (local)' }
   ];
   const themeOptions: Array<{ id: AppTheme; label: string }> = [
     { id: 'dark', label: 'Dark' },
@@ -70,6 +75,8 @@
   ]);
   const OLLAMA_SETUP_DOC_URL =
     'https://github.com/chxrus/doppler/blob/main/docs/ollama-setup.md';
+  const LMSTUDIO_SETUP_DOC_URL =
+    'https://github.com/chxrus/doppler/blob/main/docs/lmstudio-setup.md';
   const WHISPER_SETUP_DOC_URL =
     'https://github.com/chxrus/doppler/blob/main/docs/whisper-setup.md';
   const WHISPER_MODELS_URL =
@@ -146,6 +153,9 @@
       if ($settingsStore.text_provider === 'ollama') {
         void detectOllamaModels();
       }
+      if ($settingsStore.text_provider === 'lmstudio') {
+        void detectLmStudioModels();
+      }
       
       // Apply current opacity to UI
       applyUiOpacity($settingsStore.opacity);
@@ -193,6 +203,32 @@
     }
   }
 
+  async function detectLmStudioModels() {
+    const baseUrl = $settingsStore.lmstudio_base_url.trim();
+    isDetectingLmStudioModels = true;
+    lmstudioModelsErrorMessage = null;
+
+    try {
+      const models = await listLmStudioModels(baseUrl);
+      lmstudioModels = models;
+
+      if (
+        models.length > 0 &&
+        ($settingsStore.lmstudio_model.trim() === '' ||
+          !models.includes($settingsStore.lmstudio_model))
+      ) {
+        settingsStore.updateField('lmstudio_model', models[0]);
+      }
+    } catch (error) {
+      console.error('Could not detect LM Studio models:', error);
+      lmstudioModels = [];
+      lmstudioModelsErrorMessage =
+        error instanceof Error ? error.message : 'Could not load LM Studio models.';
+    } finally {
+      isDetectingLmStudioModels = false;
+    }
+  }
+
   async function openOllamaSetupDocs() {
     try {
       await openUrl(OLLAMA_SETUP_DOC_URL);
@@ -209,11 +245,22 @@
     }
   }
 
+  async function openLmStudioSetupDocs() {
+    try {
+      await openUrl(LMSTUDIO_SETUP_DOC_URL);
+    } catch (error) {
+      console.warn('Could not open LM Studio setup docs:', error);
+    }
+  }
+
   function handleTextProviderChange() {
     settingsStore.updateField('text_provider', $settingsStore.text_provider);
 
     if ($settingsStore.text_provider === 'ollama' && ollamaModels.length === 0) {
       void detectOllamaModels();
+    }
+    if ($settingsStore.text_provider === 'lmstudio' && lmstudioModels.length === 0) {
+      void detectLmStudioModels();
     }
   }
 
@@ -699,6 +746,95 @@
               <p class="text-xs text-rose-700">{ollamaModelsErrorMessage}</p>
             {/if}
             <label class="block text-xs font-medium text-slate-300" for="ollama-temperature">
+              Temperature: {$settingsStore.gemini_temperature.toFixed(2)}
+            </label>
+            <Slider
+              min={0}
+              max={1}
+              step={0.05}
+              bind:value={$settingsStore.gemini_temperature}
+              oninput={() => settingsStore.updateField('gemini_temperature', $settingsStore.gemini_temperature, true)}
+            />
+          </div>
+        {/if}
+
+        {#if $settingsStore.text_provider === 'lmstudio'}
+          <div class="space-y-2 border-t border-slate-600/45 pt-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-xs font-semibold uppercase tracking-wide text-slate-200">LM Studio</div>
+              <button
+                type="button"
+                class="h-6 w-6 shrink-0 rounded-md border border-white/15 bg-slate-900/55 text-slate-200 text-xs font-semibold transition hover:bg-slate-900/80"
+                onclick={() => {
+                  void openLmStudioSetupDocs();
+                }}
+                aria-label="Open LM Studio setup guide"
+                title="Open LM Studio setup guide"
+              >
+                ?
+              </button>
+            </div>
+            <p class="text-xs text-slate-300">
+              Use the LM Studio Local Server endpoint and choose a loaded model.
+            </p>
+            <label class="block text-xs font-medium text-slate-300" for="lmstudio-base-url">
+              Base URL
+            </label>
+            <Input
+              type="text"
+              bind:value={$settingsStore.lmstudio_base_url}
+              placeholder="http://localhost:1234/v1"
+              oninput={() => settingsStore.updateField('lmstudio_base_url', $settingsStore.lmstudio_base_url)}
+            />
+            <label class="block text-xs font-medium text-slate-300" for="lmstudio-model">
+              Model
+            </label>
+            <div class="flex items-center gap-2">
+              <div class="flex-1">
+                <select
+                  id="lmstudio-model"
+                  class="w-full rounded-xl border border-white/15 bg-slate-900/65 px-3 py-2 text-sm text-slate-100"
+                  bind:value={$settingsStore.lmstudio_model}
+                  onchange={() => settingsStore.updateField('lmstudio_model', $settingsStore.lmstudio_model)}
+                >
+                  {#if lmstudioModels.length === 0}
+                    <option value="" disabled>Refresh models first</option>
+                  {/if}
+                  {#each lmstudioModels as model}
+                    <option value={model}>{model}</option>
+                  {/each}
+                </select>
+              </div>
+              <button
+                type="button"
+                class="h-10 w-10 shrink-0 rounded-xl border border-white/15 bg-slate-900/55 text-slate-200 transition hover:bg-slate-900/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                onclick={() => {
+                  void detectLmStudioModels();
+                }}
+                disabled={isDetectingLmStudioModels}
+                aria-label="Refresh LM Studio models"
+                title="Refresh LM Studio models"
+              >
+                {#if isDetectingLmStudioModels}
+                  <svg class="mx-auto h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12a9 9 0 11-2.64-6.36" stroke-linecap="round" />
+                    <path d="M21 3v6h-6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                {:else}
+                  <svg class="mx-auto h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12a9 9 0 11-2.64-6.36" stroke-linecap="round" />
+                    <path d="M21 3v6h-6" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                {/if}
+              </button>
+            </div>
+            {#if lmstudioModels.length > 0}
+              <p class="text-xs text-slate-300">Found models: {lmstudioModels.length}</p>
+            {/if}
+            {#if lmstudioModelsErrorMessage !== null}
+              <p class="text-xs text-rose-700">{lmstudioModelsErrorMessage}</p>
+            {/if}
+            <label class="block text-xs font-medium text-slate-300" for="lmstudio-temperature">
               Temperature: {$settingsStore.gemini_temperature.toFixed(2)}
             </label>
             <Slider

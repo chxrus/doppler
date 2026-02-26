@@ -147,6 +147,12 @@ Setup instructions for local Ollama are here:
 
 - [docs/ollama-setup.md](docs/ollama-setup.md)
 
+### LM Studio (Windows / Linux / macOS)
+
+Setup instructions for local LM Studio are here:
+
+- [docs/lmstudio-setup.md](docs/lmstudio-setup.md)
+
 ### Text Chat
 
 1. Type your question or prompt in the input field

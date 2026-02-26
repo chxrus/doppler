@@ -4,6 +4,7 @@ mod audio;
 mod audio_processing;
 mod commands;
 pub mod gemini;
+pub mod lmstudio;
 pub mod models;
 pub mod ollama;
 mod storage;
@@ -141,6 +142,7 @@ pub fn run() {
             commands::send_message,
             commands::send_message_stream,
             commands::list_ollama_models,
+            commands::list_lmstudio_models,
             commands::start_recording,
             commands::stop_recording_and_transcribe,
             commands::stop_recording,
