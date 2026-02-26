@@ -247,7 +247,7 @@ pub async fn update_settings(settings: crate::models::Settings) -> Result<(), St
 
 #[tauri::command]
 pub fn is_whisper_supported() -> bool {
-    cfg!(feature = "local-whisper")
+    true
 }
 
 #[tauri::command]

@@ -1,4 +1,3 @@
-#[cfg(feature = "local-whisper")]
 mod whisper_local;
 
 use crate::audio;
@@ -31,19 +30,7 @@ pub async fn transcribe(
             .await
             .map_err(|error| format!("Failed to transcribe audio: {error}"))
         }
-        "whisper" => {
-            #[cfg(feature = "local-whisper")]
-            {
-                whisper_local::transcribe(recorded_audio, settings).await
-            }
-            #[cfg(not(feature = "local-whisper"))]
-            {
-                Err(
-                    "Whisper support is not enabled in this build. Rebuild with feature 'local-whisper'."
-                        .to_string(),
-                )
-            }
-        }
+        "whisper" => whisper_local::transcribe(recorded_audio, settings).await,
         other => Err(format!("Unsupported STT provider: {other}")),
     }
 }

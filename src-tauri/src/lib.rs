@@ -1,6 +1,5 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 mod audio;
-#[cfg(feature = "local-whisper")]
 mod audio_processing;
 mod commands;
 pub mod gemini;
