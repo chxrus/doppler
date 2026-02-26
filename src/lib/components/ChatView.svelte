@@ -3,7 +3,7 @@
   import { listen } from '@tauri-apps/api/event';
   import ErrorMessage from '$lib/components/ui/ErrorMessage.svelte';
   import Spinner from '$lib/components/ui/Spinner.svelte';
-  import { chatStore } from '$lib/stores/chatStore';
+  import { chatStore, type VoiceProcessingState } from '$lib/stores/chatStore';
   import { settingsStore } from '$lib/stores/settingsStore';
   import { formatHotkeyLabel, isHotkeyPressed } from '$lib/utils/hotkeys';
   import { renderMarkdown } from '$lib/utils/markdown';
@@ -32,26 +32,36 @@
   let isRecording = $state(false);
 
   let exchanges = $state<any[]>([]);
+  let activeChatId = $state(1);
   let isLoading = $state(false);
   let errorMessage = $state<string | null>(null);
   let recordingErrorMessage = $state<string | null>(null);
   let isRecordingBusy = $state(false);
-  let isTranscribingRecording = $state(false);
+  let voiceProcessingState = $state<VoiceProcessingState>('idle');
   let speakingExchangeIndex = $state<number | null>(null);
   let ttsErrorMessage = $state<string | null>(null);
   let isClearingSession = $state(false);
+  const voiceProcessingStatus = $derived.by(() => {
+    if (voiceProcessingState === 'transcribing') return 'Transcribing...';
+    if (voiceProcessingState === 'inserting') return 'Inserting...';
+    return null;
+  });
 
   $effect(() => {
     const unsubExchanges = chatStore.exchanges.subscribe(value => exchanges = value);
+    const unsubChatId = chatStore.chatId.subscribe(value => activeChatId = value);
     const unsubLoading = chatStore.isLoading.subscribe(value => isLoading = value);
     const unsubError = chatStore.error.subscribe(value => errorMessage = value);
     const unsubInputDraft = chatStore.inputDraft.subscribe(value => input = value);
+    const unsubVoiceState = chatStore.voiceProcessingState.subscribe(value => voiceProcessingState = value);
     
     return () => {
       unsubExchanges();
+      unsubChatId();
       unsubLoading();
       unsubError();
       unsubInputDraft();
+      unsubVoiceState();
     };
   });
 
@@ -140,6 +150,7 @@
 
     try {
       if (!isRecording) {
+        chatStore.setVoiceProcessingStateForChat(activeChatId, 'recording');
         await startRecording();
         isRecording = true;
         return;
@@ -147,9 +158,11 @@
 
       await stopRecording();
       isRecording = false;
-      isTranscribingRecording = true;
+      const targetChatId = activeChatId;
+      chatStore.setVoiceProcessingStateForChat(targetChatId, 'transcribing');
       void transcribeLastRecording()
         .then((transcription) => {
+          chatStore.setVoiceProcessingStateForChat(targetChatId, 'inserting');
           const trimmedTranscription = transcription.trim();
           if (trimmedTranscription !== '') {
             input = input.trim() === '' ? trimmedTranscription : `${input.trim()} ${trimmedTranscription}`;
@@ -164,10 +177,11 @@
           recordingErrorMessage = error instanceof Error ? error.message : String(error);
         })
         .finally(() => {
-          isTranscribingRecording = false;
+          chatStore.setVoiceProcessingStateForChat(targetChatId, 'idle');
         });
     } catch (error) {
       isRecording = false;
+      chatStore.setVoiceProcessingStateForChat(activeChatId, 'idle');
       recordingErrorMessage = error instanceof Error ? error.message : String(error);
     } finally {
       isRecordingBusy = false;
@@ -223,6 +237,7 @@
       speakingExchangeIndex = null;
       recordingErrorMessage = null;
       ttsErrorMessage = null;
+      isRecording = false;
       isClearingSession = false;
     }
   }
@@ -319,7 +334,7 @@
 
     <div class="flex-1 min-h-0 rounded-2xl border backdrop-blur-xl p-2 flex flex-col gap-2"
       style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgb(var(--doppler-surface-rgb, 15 23 42) / var(--doppler-surface-alpha, 0.55));">
-      <div class="flex items-center justify-between gap-2 select-none">
+      <div class="flex items-center justify-between gap-3 select-none">
         <div
           class="h-9 shrink-0 rounded-lg border px-2.5 text-[11px] font-semibold uppercase tracking-wide flex items-center gap-1.5"
           style={$settingsStore.screen_capture_protection
@@ -346,8 +361,17 @@
           {/if}
         </div>
 
-        <div class="flex items-center gap-1.5">
-        <button
+	        <div class="flex items-center gap-2">
+          <div
+            class="h-9 w-32 rounded-lg border px-2 text-center text-xs font-medium flex items-center justify-center transition"
+            style={voiceProcessingStatus !== null
+              ? 'border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgb(var(--doppler-control-rgb, 15 23 42) / var(--doppler-control-alpha, 0.62)); color: rgb(203 213 225);'
+              : 'border-color: transparent; background: transparent; color: transparent;'}
+            aria-live="polite"
+          >
+            {voiceProcessingStatus ?? 'Idle'}
+          </div>
+	        <button
           type="button"
           class="h-9 px-2 rounded-lg border text-xs font-semibold text-slate-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
           style="border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65)); background: rgb(var(--doppler-control-rgb, 15 23 42) / var(--doppler-control-alpha, 0.62));"
@@ -457,14 +481,14 @@
           class="h-11 w-11 shrink-0 rounded-xl border text-lg transition {isRecording
             ? 'border-rose-300/70 bg-rose-500/28 text-rose-100 shadow-[0_0_0_1px_rgba(244,63,94,0.25)]'
             : 'border-white/15 bg-slate-900/45 text-slate-100 hover:bg-slate-900/75'}"
-          onclick={() => {
-            void toggleRecording();
-          }}
-          disabled={isRecordingBusy || isTranscribingRecording}
-          aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-          title={isRecording ? `Stop recording (${formatHotkeyLabel($settingsStore.hotkey_record)})` : isTranscribingRecording ? 'Transcribing...' : `Start recording (${formatHotkeyLabel($settingsStore.hotkey_record)})`}
-          data-hotkey={formatHotkeyLabel($settingsStore.hotkey_record)}
-        >
+	          onclick={() => {
+	            void toggleRecording();
+	          }}
+          disabled={isRecordingBusy || voiceProcessingState === 'transcribing' || voiceProcessingState === 'inserting'}
+	          aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+          title={isRecording ? `Stop recording (${formatHotkeyLabel($settingsStore.hotkey_record)})` : voiceProcessingStatus ?? `Start recording (${formatHotkeyLabel($settingsStore.hotkey_record)})`}
+	          data-hotkey={formatHotkeyLabel($settingsStore.hotkey_record)}
+	        >
           <svg viewBox="0 0 24 24" class="mx-auto h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="9" y="3" width="6" height="12" rx="3" />
             <path d="M5 11a7 7 0 0014 0" stroke-linecap="round" />

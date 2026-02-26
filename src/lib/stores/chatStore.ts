@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 import { listen } from '@tauri-apps/api/event';
 import { sendMessageStream as sendMessageCommand } from '$lib/tauri/commands';
 
@@ -14,11 +14,15 @@ interface AssistantStreamChunkPayload {
   chunk: string;
 }
 
+export type VoiceProcessingState = 'idle' | 'recording' | 'transcribing' | 'inserting';
+
 function createChatStore() {
   const exchanges = writable<Exchange[]>([]);
   const isLoading = writable(false);
   const error = writable<string | null>(null);
   const inputDraft = writable('');
+  const chatId = writable(1);
+  const voiceProcessingState = writable<VoiceProcessingState>('idle');
   let nextExchangeId = 1;
   let pendingRequestCount = 0;
 
@@ -27,6 +31,8 @@ function createChatStore() {
     isLoading,
     error,
     inputDraft,
+    chatId,
+    voiceProcessingState,
 
     async sendMessage(message: string): Promise<void> {
       const trimmedMessage = message.trim();
@@ -116,12 +122,22 @@ function createChatStore() {
       inputDraft.set(value);
     },
 
+    setVoiceProcessingStateForChat(targetChatId: number, state: VoiceProcessingState): void {
+      if (targetChatId !== get(chatId)) {
+        return;
+      }
+      voiceProcessingState.set(state);
+    },
+
     clearSession(): void {
+      const nextChatId = get(chatId) + 1;
       pendingRequestCount = 0;
       exchanges.set([]);
       inputDraft.set('');
       error.set(null);
       isLoading.set(false);
+      voiceProcessingState.set('idle');
+      chatId.set(nextChatId);
     }
   };
 }
