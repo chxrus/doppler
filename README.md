@@ -24,7 +24,7 @@ Doppler is a lightweight, privacy-focused desktop assistant that combines the po
 
 <div align="center">
   <img src="static/screen-chat.png" alt="Main Chat Interface" width="45%"/>
-  <img src="static/screen-settings-general.png" alt="Settings View" width="45%"/>
+  <img src="static/screen-settings.png" alt="Settings View" width="45%"/>
 </div>
 
 ### Key Features
