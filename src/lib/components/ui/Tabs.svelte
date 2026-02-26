@@ -25,9 +25,9 @@
       <button
         type="button"
         onclick={() => handleTabClick(tab.id)}
-        class="px-2.5 py-1.5 text-xs font-semibold rounded-lg transition {activeTab === tab.id
-          ? 'bg-teal-500/22 text-teal-100 shadow-sm border border-teal-300/45'
-          : 'text-slate-300 hover:bg-slate-900/70'}"
+        class="tab-button px-2.5 py-1.5 text-xs font-semibold rounded-lg transition {activeTab === tab.id
+          ? 'is-active shadow-sm border'
+          : ''}"
         aria-current={activeTab === tab.id ? 'page' : undefined}
       >
         {tab.label}
@@ -35,3 +35,19 @@
     {/each}
   </nav>
 </div>
+
+<style>
+  .tab-button {
+    color: rgb(var(--doppler-tab-inactive-text-rgb, 203 213 225));
+  }
+
+  .tab-button:hover {
+    background: rgb(var(--doppler-tab-hover-rgb, 30 41 59) / var(--doppler-tab-hover-alpha, 0.62));
+  }
+
+  .tab-button.is-active {
+    border-color: rgb(var(--doppler-accent-rgb, 20 184 166) / 0.45);
+    background: rgb(var(--doppler-accent-rgb, 20 184 166) / var(--doppler-tab-active-bg-alpha, 0.22));
+    color: rgb(var(--doppler-tab-active-text-rgb, 204 251 241));
+  }
+</style>

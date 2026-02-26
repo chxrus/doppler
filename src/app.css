@@ -26,10 +26,16 @@
     --doppler-capture-hidden-bg-alpha: 0.28;
     --doppler-tab-active-text-rgb: 204 251 241;
     --doppler-tab-active-bg-alpha: 0.22;
+    --doppler-tab-inactive-text-rgb: 203 213 225;
+    --doppler-tab-hover-rgb: 30 41 59;
+    --doppler-tab-hover-alpha: 0.62;
     --doppler-slider-track-rgb: 71 85 105;
     --doppler-slider-track-alpha: 0.8;
     --doppler-slider-track-border-rgb: 148 163 184;
     --doppler-slider-track-border-alpha: 0.45;
+    --doppler-button-secondary-text-rgb: 226 232 240;
+    --doppler-button-secondary-bg-alpha: 0.62;
+    --doppler-button-secondary-hover-alpha: 0.78;
   }
 
   :root[data-theme='light'] {
@@ -51,10 +57,16 @@
     --doppler-capture-hidden-bg-alpha: 0.2;
     --doppler-tab-active-text-rgb: 15 118 110;
     --doppler-tab-active-bg-alpha: 0.16;
+    --doppler-tab-inactive-text-rgb: 51 65 85;
+    --doppler-tab-hover-rgb: 226 232 240;
+    --doppler-tab-hover-alpha: 0.92;
     --doppler-slider-track-rgb: 148 163 184;
     --doppler-slider-track-alpha: 0.55;
     --doppler-slider-track-border-rgb: 100 116 139;
     --doppler-slider-track-border-alpha: 0.45;
+    --doppler-button-secondary-text-rgb: 30 41 59;
+    --doppler-button-secondary-bg-alpha: 0.9;
+    --doppler-button-secondary-hover-alpha: 0.98;
   }
 
   html,

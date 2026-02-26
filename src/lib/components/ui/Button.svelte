@@ -21,7 +21,7 @@
 
   const variantClasses = {
     primary: 'bg-teal-500/85 text-white border-teal-300/55 hover:bg-teal-400',
-    secondary: 'bg-slate-900/45 text-slate-100 border-white/15 hover:bg-slate-900/75',
+    secondary: 'doppler-button-secondary',
     danger: 'bg-rose-500/78 text-white border-rose-300/55 hover:bg-rose-400'
   };
 
@@ -55,3 +55,15 @@
     {@render children?.()}
   {/if}
 </button>
+
+<style>
+  .doppler-button-secondary {
+    color: rgb(var(--doppler-button-secondary-text-rgb, 226 232 240));
+    border-color: rgba(148, 163, 184, var(--doppler-border-alpha, 0.65));
+    background: rgb(var(--doppler-control-rgb, 15 23 42) / var(--doppler-button-secondary-bg-alpha, 0.62));
+  }
+
+  .doppler-button-secondary:hover {
+    background: rgb(var(--doppler-control-rgb, 15 23 42) / var(--doppler-button-secondary-hover-alpha, 0.78));
+  }
+</style>
