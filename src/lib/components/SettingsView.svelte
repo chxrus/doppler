@@ -145,7 +145,6 @@
     try {
       apiKey = (await getApiKey()) ?? '';
       whisperSupported = await isWhisperSupported();
-      await settingsStore.loadSettings();
       if (!whisperSupported && $settingsStore.stt_provider === 'whisper') {
         settingsStore.updateField('stt_provider', 'gemini');
       }
